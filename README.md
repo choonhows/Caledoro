@@ -1,22 +1,168 @@
-# Caledoro
-Caledoro – Offline-first Pomodoro &amp; Task Planner with Calendar and Android Home Screen Widgets
+# 📱 Caledoro
 
-Caledoro is a lightweight, offline-first Flutter app designed to boost productivity. It combines a To-Do Playlist, customizable Pomodoro timer, and calendar integration, all in a minimalist, clean interface.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
-Key Features:
+**Caledoro** is a lightweight, offline‑first productivity app built with **Flutter (Dart)**. It combines a **To‑Do Playlist**, **customizable Pomodoro timer**, **calendar integration**, and **Android home screen widgets** — all designed for simplicity and smooth performance.
 
-Task Playlists – Organize your daily tasks in order, attach Pomodoro timers to each task.
+🚀 This application is ready for team collaboration, and optimized for offline use with persistent storage.
 
-Pomodoro Timer – Work/break cycles with notifications; customizable durations; persists offline.
+---
 
-Calendar View – Daily & monthly task views, link tasks to specific dates, optional future Google Calendar sync.
+## 🔑 Features
 
-Themes – Light/dark mode and customizable accent colors.
+### 🧠 Productivity Tools
+- **To‑Do Playlist** — Organize daily tasks into ordered lists
+- **Pomodoro Timer**  
+  - Configurable work/break durations  
+  - Short & long breaks  
+  - Cycle persistence after app restarts  
+  - Notifications for start/end and breaks  
+  - Pause/Skip controls
 
-Android Home Screen Widgets – Quick access to top task, Pomodoro countdown, and controls.
+### 📅 Calendar Integration
+- Lightweight monthly & daily views
+- Tasks optionally linked to calendar dates
+- UI calendar navigation with events and task markers
 
-Offline Storage – Hive-powered persistence for tasks, timers, and settings.
+### 🎨 Themes
+- Minimal clean UI
+- Light & Dark modes
+- Customizable accent colors
 
-Built with Flutter & Dart, using Provider/Riverpod for state management, flutter_local_notifications for alerts, and Hive for offline storage.
+### 📲 Android Home Screen Widgets
+- Pomodoro countdown widget
+- Quick start/pause widget actions
+- Today’s top task at a glance
 
-This repository is ready for team collaboration, with Git workflows for feature branches, pull requests, and continuous development.
+---
+
+## 🗃️ Data Storage (Hive)
+
+Data is stored locally using **Hive**:
+
+| Box Name       | Purpose |
+|----------------|---------|
+| `tasksBox`     | Stores Task objects |
+| `pomodoroBox`  | Stores timer settings |
+| `calendarBox`  | Stores calendar events |
+| `settingsBox`  | Theme & preferences |
+
+### 📦 Data Models
+
+- **Task** – id, title, description, status, priority, linked Pomodoro, optional date  
+- **Pomodoro** – work duration, short/long break, cycles completed, total cycles  
+- **CalendarEvent** – id, title, start/end, optional task link  
+
+---
+
+## 🧠 State Management
+
+State is managed using **Riverpod** (or Provider). Timer and task state is preserved when the app is minimized or restarted.
+
+---
+
+## 🔔 Notifications
+
+Uses `flutter_local_notifications` to notify:
+- Pomodoro start
+- Pomodoro end
+- Break start/end
+
+---
+
+## 📂 Architecture
+
+```text
+lib/
+├── core/
+│   ├── timer/
+│   ├── calendar/
+│   └── storage/
+├── features/
+│   ├── pomodoro/
+│   ├── todo/
+│   └── theme/
+├── widgets/
+└── main.dart
+```
+
+---
+
+## 🚀 Run & Build
+
+### ✅ Prerequisites
+- Flutter SDK installed
+- Android toolchain (SDK 36+)
+- Android device or emulator (optional)
+- VS Code or other editor
+
+### 📦 Install Dependencies
+
+```bash
+flutter pub get
+```
+
+### 🏃 Run Dev Builds
+
+```bash
+flutter run -d linux       # Linux desktop
+flutter run -d chrome      # Web (Chrome/Chromium)
+flutter run -d <device_id> # Android device/emulator
+```
+
+### 📱 Build APK
+
+```bash
+flutter build apk --split-per-abi
+```
+
+Output will be under `build/app/outputs/flutter-apk/`.
+
+---
+
+## 🧪 Testing
+
+(Add integration & unit tests here when available)
+
+---
+
+## 🤝 Collaboration
+
+We use a feature‑branch workflow:
+
+```bash
+git checkout -b feature/<feature-name>
+git add .
+git commit -m "Add <feature>"
+git push origin feature/<feature-name>
+```
+
+Then open a Pull Request on GitHub for review.
+
+---
+
+## 🛠 Tech Stack
+
+| Technology | Purpose |
+|------------|---------|
+| Flutter / Dart | Cross-platform UI |
+| Hive | Offline persistence |
+| Riverpod | State management |
+| flutter_local_notifications | Local alerts |
+| table_calendar | Calendar UI |
+| home_widget | Android home screen widgets |
+
+---
+
+## 🎯 Priorities
+
+1. To‑Do Playlist + Pomodoro Timer  
+2. Calendar integration  
+3. Theme customization  
+4. Home screen widget interactivity
+
+---
+
+## 📝 License
+
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
