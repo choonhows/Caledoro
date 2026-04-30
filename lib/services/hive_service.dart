@@ -29,9 +29,15 @@ class HiveService {
       }
     }
 
-    Hive.registerAdapter(TaskPriorityAdapter());
-    Hive.registerAdapter(TaskModelAdapter());
-    Hive.registerAdapter(SettingsModelAdapter());
+    if (!Hive.isAdapterRegistered(0)) {
+      Hive.registerAdapter(TaskPriorityAdapter());
+    }
+    if (!Hive.isAdapterRegistered(1)) {
+      Hive.registerAdapter(TaskModelAdapter());
+    }
+    if (!Hive.isAdapterRegistered(2)) {
+      Hive.registerAdapter(SettingsModelAdapter());
+    }
 
     await Hive.openBox<TaskModel>(tasksBoxName);
     await Hive.openBox<SettingsModel>(settingsBoxName);

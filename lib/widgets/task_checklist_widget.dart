@@ -72,6 +72,17 @@ class _QuestCard extends ConsumerWidget {
   final TaskModel task;
   const _QuestCard({required this.task});
 
+  Future<void> _toggleTask(BuildContext context, WidgetRef ref) async {
+    try {
+      await ref.read(taskListProvider.notifier).toggleComplete(task.id);
+    } on TaskOperationException catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
@@ -100,17 +111,14 @@ class _QuestCard extends ConsumerWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(24),
           onLongPress: () => _showDeleteConfirmation(context, ref, task),
-          onTap: () =>
-              ref.read(taskListProvider.notifier).toggleComplete(task.id),
+          onTap: () => _toggleTask(context, ref),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 // ── Oversized Checkbox (28x28, 10px radius) ──
                 GestureDetector(
-                  onTap: () => ref
-                      .read(taskListProvider.notifier)
-                      .toggleComplete(task.id),
+                  onTap: () => _toggleTask(context, ref),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeOut,
@@ -225,8 +233,9 @@ void _showDeleteConfirmation(
           child: const Text('Cancel'),
         ),
         TextButton(
-          onPressed: () {
-            ref.read(taskListProvider.notifier).deleteTask(task.id);
+          onPressed: () async {
+            await ref.read(taskListProvider.notifier).deleteTask(task.id);
+            if (!context.mounted) return;
             Navigator.pop(context);
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Quest deleted')),

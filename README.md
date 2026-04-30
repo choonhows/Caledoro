@@ -39,6 +39,7 @@
 - Pomodoro countdown widget
 - Quick start/pause widget actions
 - Today’s top task at a glance
+- Checkpointed widget sync cadence (phase changes, minute boundaries, periodic checkpoints) to reduce battery/storage churn
 
 ---
 
@@ -65,6 +66,7 @@ State is managed using **Riverpod** with `NotifierProvider` pattern. All state c
 
 **Key Providers:**
 - `taskListProvider` – Manages all tasks (add, update, delete, toggle completion)
+  - Uses typed failures (`TaskOperationException`) for task operation error paths
 - `settingsProvider` – Manages Pomodoro durations and theme settings
 - `streakProvider` – Computes and exposes current recurring-task streak
 - `quoteProvider` – Returns a deterministic quote-of-the-day
@@ -75,7 +77,10 @@ Widgets access state via:
 final tasks = ref.watch(taskListProvider);
 
 // Mutate state
-ref.read(taskListProvider.notifier).addTask(task);
+await ref.read(taskListProvider.notifier).addTask(
+  title: 'Write docs',
+  dueDate: DateTime.now(),
+);
 ```
 
 ---
@@ -86,6 +91,10 @@ Uses `flutter_local_notifications` to notify:
 - Pomodoro start
 - Pomodoro end
 - Break start/end
+
+Permission behavior:
+- Notification permission is requested during app initialization
+- Settings screen shows notification authorization status with a re-check action
 
 ---
 

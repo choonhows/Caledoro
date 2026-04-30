@@ -37,7 +37,7 @@ class _PomodoroTimerWidgetState extends ConsumerState<PomodoroTimerWidget>
     _pulseAnimation = Tween<double>(begin: 1.0, end: 1.1).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-    _setupForPhase();
+    _remainingSeconds = _phaseDurationSeconds(phase);
   }
 
   @override
@@ -47,16 +47,13 @@ class _PomodoroTimerWidgetState extends ConsumerState<PomodoroTimerWidget>
     super.dispose();
   }
 
-  void _setupForPhase() {
+  int _phaseDurationSeconds(PomodoroPhase phaseValue) {
     final settings = ref.read(settingsProvider);
-    final duration = switch (phase) {
+    return switch (phaseValue) {
       PomodoroPhase.work => settings.workMinutes * 60,
       PomodoroPhase.shortBreak => settings.shortBreakMinutes * 60,
       PomodoroPhase.longBreak => settings.longBreakMinutes * 60,
     };
-    setState(() {
-      _remainingSeconds = duration;
-    });
   }
 
   void _toggleTimer() {
@@ -64,7 +61,19 @@ class _PomodoroTimerWidgetState extends ConsumerState<PomodoroTimerWidget>
       _timer?.cancel();
       _pulseController.stop();
       _pulseController.value = 0.0; // reset to 1.0 scale
+      WidgetService.updateWidgets(
+        secondsRemaining: _remainingSeconds,
+        isWorking: phase == PomodoroPhase.work,
+        completedTasks: _completedPomodoros,
+        force: true,
+      );
     } else {
+      WidgetService.updateWidgets(
+        secondsRemaining: _remainingSeconds,
+        isWorking: phase == PomodoroPhase.work,
+        completedTasks: _completedPomodoros,
+        force: true,
+      );
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         setState(() {
           if (_remainingSeconds > 0) {
@@ -79,7 +88,13 @@ class _PomodoroTimerWidgetState extends ConsumerState<PomodoroTimerWidget>
             _pulseController.stop();
             _pulseController.value = 0.0;
             _handlePhaseCompletion();
-            _setupForPhase();
+            _remainingSeconds = _phaseDurationSeconds(phase);
+            WidgetService.updateWidgets(
+              secondsRemaining: _remainingSeconds,
+              isWorking: phase == PomodoroPhase.work,
+              completedTasks: _completedPomodoros,
+              force: true,
+            );
             if (ref.read(settingsProvider).autoStartNext) {
               _toggleTimer();
             }
@@ -146,7 +161,13 @@ class _PomodoroTimerWidgetState extends ConsumerState<PomodoroTimerWidget>
       } else {
         phase = PomodoroPhase.work;
       }
-      _setupForPhase();
+      _remainingSeconds = _phaseDurationSeconds(phase);
+      WidgetService.updateWidgets(
+        secondsRemaining: _remainingSeconds,
+        isWorking: phase == PomodoroPhase.work,
+        completedTasks: _completedPomodoros,
+        force: true,
+      );
     });
   }
 

@@ -7,6 +7,19 @@ import '../models/task_model.dart';
 import '../services/hive_service.dart';
 import '../utils/date_utils.dart';
 
+class TaskOperationException implements Exception {
+  final String message;
+  final Object? cause;
+
+  const TaskOperationException(this.message, {this.cause});
+
+  @override
+  String toString() {
+    if (cause == null) return message;
+    return '$message (cause: $cause)';
+  }
+}
+
 final taskListProvider = NotifierProvider<TaskListNotifier, List<TaskModel>>(
   TaskListNotifier.new,
 );
@@ -51,9 +64,13 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
     try {
       await box.put(task.id, task);
       state = [...state, task];
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('Failed to add task: $e');
-      throw Exception('Failed to add task. Please try again.');
+      Error.throwWithStackTrace(
+        TaskOperationException('Failed to add task. Please try again.',
+            cause: e),
+        stackTrace,
+      );
     }
   }
 
@@ -61,23 +78,30 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
     final index = state.indexWhere((task) => task.id == id);
     if (index == -1) return;
     final task = state[index];
-    task.completed = !task.completed;
-    task.lastCompletedDate = task.completed ? DateTime.now() : null;
-    await task.save();
-    state = [...state]..[index] = task;
+    try {
+      task.completed = !task.completed;
+      task.lastCompletedDate = task.completed ? DateTime.now() : null;
+      await task.save();
+      state = [...state]..[index] = task;
 
-    if (task.recurringDaily && task.completed) {
-      await _updateStreakOnRecurringCompletion(DateTime.now());
+      if (task.recurringDaily && task.completed) {
+        await _updateStreakOnRecurringCompletion(DateTime.now());
+      }
+    } catch (e, stackTrace) {
+      Error.throwWithStackTrace(
+        TaskOperationException('Failed to update task completion.', cause: e),
+        stackTrace,
+      );
     }
   }
 
-  void updateTask(TaskModel task) {
-    task.save();
+  Future<void> updateTask(TaskModel task) async {
+    await task.save();
     state = state.map((t) => t.id == task.id ? task : t).toList();
   }
 
-  void deleteTask(String id) {
-    HiveService.tasksBox().delete(id);
+  Future<void> deleteTask(String id) async {
+    await HiveService.tasksBox().delete(id);
     state = state.where((task) => task.id != id).toList();
   }
 
@@ -88,14 +112,18 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
         lastResetRaw == null ? null : DateTime.tryParse(lastResetRaw);
     if (DateUtilsHelper.isSameDay(lastReset, today)) return;
 
-    final updateList = state.map((task) {
+    var hasReset = false;
+    for (final task in state) {
       if (task.recurringDaily && task.completed) {
         task.completed = false;
-        task.save();
+        await task.save();
+        hasReset = true;
       }
-      return task;
-    }).toList();
-    state = updateList;
+    }
+
+    if (hasReset) {
+      state = [...state];
+    }
 
     await HiveService.widgetBox().put('meta', {
       ...meta,

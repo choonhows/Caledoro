@@ -24,6 +24,56 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
+
+    await _requestPermissions();
+  }
+
+  static Future<void> _requestPermissions() async {
+    try {
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(alert: true, badge: true, sound: true);
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+              MacOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(alert: true, badge: true, sound: true);
+    } catch (e) {
+      debugPrint('Notification permission request failed: $e');
+    }
+  }
+
+  static Future<bool> isAuthorized() async {
+    try {
+      final android = await _plugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.areNotificationsEnabled();
+      if (android != null) return android;
+
+      final ios = await _plugin
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(alert: false, badge: false, sound: false);
+      if (ios != null) return ios;
+
+      final macos = await _plugin
+          .resolvePlatformSpecificImplementation<
+              MacOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(alert: false, badge: false, sound: false);
+      if (macos != null) return macos;
+    } catch (_) {
+      // Plugin may be unavailable in widget/unit tests before app init.
+    }
+    return false;
+  }
+
+  static Future<void> requestPermissions() async {
+    await _requestPermissions();
   }
 
   static Future<void> showPhaseNotification({

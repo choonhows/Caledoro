@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/settings_provider.dart';
+import '../services/notification_service.dart';
+
+final notificationAuthorizationProvider = FutureProvider<bool>((ref) async {
+  return NotificationService.isAuthorized();
+});
 
 class PomodoroSettingsScreen extends ConsumerWidget {
   const PomodoroSettingsScreen({super.key});
@@ -94,7 +99,14 @@ class PomodoroSettingsScreen extends ConsumerWidget {
             _CozyToggle(
               label: 'Notifications',
               value: settings.notificationsEnabled,
-              onChanged: (v) => _update(context, ref, notificationsEnabled: v),
+              onChanged: (v) async {
+                await _update(context, ref, notificationsEnabled: v);
+                ref.invalidate(notificationAuthorizationProvider);
+              },
+            ),
+            _NotificationStatusCard(
+              onRefresh: () =>
+                  ref.invalidate(notificationAuthorizationProvider),
             ),
             _CozyToggle(
               label: 'Sound',
@@ -116,6 +128,103 @@ class PomodoroSettingsScreen extends ConsumerWidget {
 
             const SizedBox(height: 40),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationStatusCard extends ConsumerWidget {
+  final VoidCallback onRefresh;
+
+  const _NotificationStatusCard({required this.onRefresh});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final status = ref.watch(notificationAuthorizationProvider);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: status.when(
+        data: (authorized) {
+          final title = authorized
+              ? 'Notification permission is enabled.'
+              : 'Notification permission is disabled.';
+          final subtitle = authorized
+              ? 'Pomodoro alerts can appear when enabled in preferences.'
+              : 'Enable OS notification permission to receive timer alerts.';
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                authorized
+                    ? Icons.notifications_active_rounded
+                    : Icons.notifications_off_rounded,
+                color: authorized ? cs.primary : cs.tertiary,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: tt.bodyMedium?.copyWith(
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: tt.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                    if (!authorized) ...[
+                      const SizedBox(height: 8),
+                      TextButton.icon(
+                        onPressed: () async {
+                          await NotificationService.requestPermissions();
+                          onRefresh();
+                        },
+                        icon: const Icon(Icons.refresh_rounded),
+                        label: const Text('Check permission again'),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+        loading: () => Row(
+          children: [
+            SizedBox(
+              height: 16,
+              width: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: cs.primary,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Checking notification permission...',
+              style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+            ),
+          ],
+        ),
+        error: (_, __) => Text(
+          'Unable to verify notification permission right now.',
+          style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
         ),
       ),
     );
