@@ -232,29 +232,29 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
     List<TaskModel> ordered,
   ) async {
     try {
-      for (var i = 0; i < ordered.length; i++) {
-        final task = ordered[i];
-        task.sortOrder = i;
-        await task.save();
-      }
-
-      final reordered = <TaskModel>[];
+      final dayTasks = <TaskModel>[];
       final remaining = <TaskModel>[];
       for (final task in state) {
         if (DateUtilsHelper.isSameDay(task.dueDate, day)) {
-          reordered.add(task);
+          dayTasks.add(task);
         } else {
           remaining.add(task);
         }
       }
 
       final orderedIds = ordered.map((task) => task.id).toSet();
-      final orderedMap = {for (final task in ordered) task.id: task};
-      final nextDayTasks = <TaskModel>[];
-      for (final task in reordered) {
-        if (orderedIds.contains(task.id)) {
-          nextDayTasks.add(orderedMap[task.id]!);
+      final remainingDayTasks = <TaskModel>[];
+      for (final task in dayTasks) {
+        if (!orderedIds.contains(task.id)) {
+          remainingDayTasks.add(task);
         }
+      }
+
+      final nextDayTasks = [...ordered, ...remainingDayTasks];
+      for (var i = 0; i < nextDayTasks.length; i++) {
+        final task = nextDayTasks[i];
+        task.sortOrder = i;
+        await task.save();
       }
 
       state = [...remaining, ...nextDayTasks];
