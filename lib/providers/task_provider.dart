@@ -79,8 +79,14 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
     if (index == -1) return;
     final task = state[index];
     try {
-      task.completed = !task.completed;
-      task.lastCompletedDate = task.completed ? DateTime.now() : null;
+      final nextCompleted = !task.completed;
+      if (task.subtasks.isNotEmpty) {
+        for (final subtask in task.subtasks) {
+          subtask.completed = nextCompleted;
+        }
+      }
+      task.completed = nextCompleted;
+      task.lastCompletedDate = nextCompleted ? DateTime.now() : null;
       await task.save();
       state = [...state]..[index] = task;
 
@@ -103,6 +109,161 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
   Future<void> deleteTask(String id) async {
     await HiveService.tasksBox().delete(id);
     state = state.where((task) => task.id != id).toList();
+  }
+
+  Future<void> addSubtask(String taskId, String label) async {
+    final index = state.indexWhere((task) => task.id == taskId);
+    if (index == -1) return;
+    final task = state[index];
+    final trimmed = label.trim();
+    if (trimmed.isEmpty) return;
+
+    final subtask = SubtaskModel(
+      id: const Uuid().v4(),
+      label: trimmed,
+      sortOrder: task.subtasks.length,
+    );
+
+    try {
+      task.subtasks = [...task.subtasks, subtask];
+      task.completed = false;
+      task.lastCompletedDate = null;
+      await task.save();
+      state = [...state]..[index] = task;
+    } catch (e, stackTrace) {
+      Error.throwWithStackTrace(
+        TaskOperationException('Failed to add subtask.', cause: e),
+        stackTrace,
+      );
+    }
+  }
+
+  Future<void> toggleSubtask(String taskId, String subtaskId) async {
+    final index = state.indexWhere((task) => task.id == taskId);
+    if (index == -1) return;
+    final task = state[index];
+    final subtaskIndex =
+        task.subtasks.indexWhere((subtask) => subtask.id == subtaskId);
+    if (subtaskIndex == -1) return;
+
+    try {
+      final subtask = task.subtasks[subtaskIndex];
+      subtask.completed = !subtask.completed;
+      task.subtasks = [...task.subtasks]..[subtaskIndex] = subtask;
+
+      if (task.subtasks.isNotEmpty) {
+        final allCompleted = task.subtasks.every((s) => s.completed);
+        task.completed = allCompleted;
+        task.lastCompletedDate = allCompleted ? DateTime.now() : null;
+      }
+
+      await task.save();
+      state = [...state]..[index] = task;
+
+      if (task.recurringDaily && task.completed) {
+        await _updateStreakOnRecurringCompletion(DateTime.now());
+      }
+    } catch (e, stackTrace) {
+      Error.throwWithStackTrace(
+        TaskOperationException('Failed to update subtask.', cause: e),
+        stackTrace,
+      );
+    }
+  }
+
+  Future<void> deleteSubtask(String taskId, String subtaskId) async {
+    final index = state.indexWhere((task) => task.id == taskId);
+    if (index == -1) return;
+    final task = state[index];
+    final nextSubtasks =
+        task.subtasks.where((subtask) => subtask.id != subtaskId).toList();
+    if (nextSubtasks.length == task.subtasks.length) return;
+
+    try {
+      for (var i = 0; i < nextSubtasks.length; i++) {
+        nextSubtasks[i].sortOrder = i;
+      }
+      task.subtasks = nextSubtasks;
+      if (task.subtasks.isNotEmpty) {
+        final allCompleted = task.subtasks.every((s) => s.completed);
+        task.completed = allCompleted;
+        task.lastCompletedDate = allCompleted ? DateTime.now() : null;
+      }
+      await task.save();
+      state = [...state]..[index] = task;
+    } catch (e, stackTrace) {
+      Error.throwWithStackTrace(
+        TaskOperationException('Failed to delete subtask.', cause: e),
+        stackTrace,
+      );
+    }
+  }
+
+  Future<void> reorderSubtasks(String taskId, List<SubtaskModel> ordered) async {
+    final index = state.indexWhere((task) => task.id == taskId);
+    if (index == -1) return;
+    final task = state[index];
+
+    try {
+      final next = <SubtaskModel>[];
+      for (var i = 0; i < ordered.length; i++) {
+        final subtask = ordered[i];
+        subtask.sortOrder = i;
+        next.add(subtask);
+      }
+      task.subtasks = next;
+      if (task.subtasks.isNotEmpty) {
+        final allCompleted = task.subtasks.every((s) => s.completed);
+        task.completed = allCompleted;
+        task.lastCompletedDate = allCompleted ? DateTime.now() : null;
+      }
+      await task.save();
+      state = [...state]..[index] = task;
+    } catch (e, stackTrace) {
+      Error.throwWithStackTrace(
+        TaskOperationException('Failed to reorder subtasks.', cause: e),
+        stackTrace,
+      );
+    }
+  }
+
+  Future<void> reorderTasksForDay(
+    DateTime day,
+    List<TaskModel> ordered,
+  ) async {
+    try {
+      for (var i = 0; i < ordered.length; i++) {
+        final task = ordered[i];
+        task.sortOrder = i;
+        await task.save();
+      }
+
+      final reordered = <TaskModel>[];
+      final remaining = <TaskModel>[];
+      for (final task in state) {
+        if (DateUtilsHelper.isSameDay(task.dueDate, day)) {
+          reordered.add(task);
+        } else {
+          remaining.add(task);
+        }
+      }
+
+      final orderedIds = ordered.map((task) => task.id).toSet();
+      final orderedMap = {for (final task in ordered) task.id: task};
+      final nextDayTasks = <TaskModel>[];
+      for (final task in reordered) {
+        if (orderedIds.contains(task.id)) {
+          nextDayTasks.add(orderedMap[task.id]!);
+        }
+      }
+
+      state = [...remaining, ...nextDayTasks];
+    } catch (e, stackTrace) {
+      Error.throwWithStackTrace(
+        TaskOperationException('Failed to reorder tasks.', cause: e),
+        stackTrace,
+      );
+    }
   }
 
   Future<void> dailyResetRecurring(DateTime today) async {
