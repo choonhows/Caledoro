@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../models/settings_model.dart';
+import '../providers/settings_provider.dart';
 import '../providers/task_provider.dart';
 import '../providers/streak_provider.dart';
 import '../providers/quote_provider.dart';
@@ -17,6 +19,7 @@ class HomeWidgetScreen extends ConsumerWidget {
     final today = ref.watch(selectedDateProvider);
     final streak = ref.watch(streakProvider);
     final quote = ref.watch(quoteProvider);
+    final settings = ref.watch(settingsProvider);
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
 
@@ -119,11 +122,42 @@ class HomeWidgetScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              '$remaining Quest${remaining == 1 ? '' : 's'} remaining for today',
-              style: tt.bodyMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '$remaining Quest${remaining == 1 ? '' : 's'} remaining for today',
+                    style: tt.bodyMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Smart'),
+                      selected: settings.taskSortMode == TaskSortMode.smart,
+                      selectedColor: cs.primaryContainer,
+                      backgroundColor: cs.surfaceContainerHigh,
+                      checkmarkColor: cs.onSurface,
+                      onSelected: (_) => ref
+                          .read(settingsProvider.notifier)
+                          .update(taskSortMode: TaskSortMode.smart),
+                    ),
+                    ChoiceChip(
+                      label: const Text('Custom'),
+                      selected: settings.taskSortMode == TaskSortMode.custom,
+                      selectedColor: cs.secondaryContainer,
+                      backgroundColor: cs.surfaceContainerHigh,
+                      checkmarkColor: cs.onSurface,
+                      onSelected: (_) => ref
+                          .read(settingsProvider.notifier)
+                          .update(taskSortMode: TaskSortMode.custom),
+                    ),
+                  ],
+                ),
+              ],
             ),
 
             const SizedBox(height: 16),

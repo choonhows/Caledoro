@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import '../widgets/mini_calendar_widget.dart';
 import '../widgets/task_checklist_widget.dart';
 import '../models/task_model.dart';
+import '../models/settings_model.dart';
+import '../providers/settings_provider.dart';
 import '../providers/task_provider.dart';
 import '../theme.dart';
 
@@ -17,6 +19,7 @@ class CalendarScreen extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final selectedDate = ref.watch(selectedDateProvider);
+    final settings = ref.watch(settingsProvider);
 
     String monthName(DateTime date) => DateFormat('MMMM').format(date);
 
@@ -52,11 +55,43 @@ class CalendarScreen extends ConsumerWidget {
               const SizedBox(height: 24),
 
               // ── Selected day header ──
-              Text(
-                '${monthName(selectedDate)} ${selectedDate.day}',
-                style: tt.titleLarge?.copyWith(
-                  color: cs.onSurface,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${monthName(selectedDate)} ${selectedDate.day}',
+                      style: tt.titleLarge?.copyWith(
+                        color: cs.onSurface,
+                      ),
+                    ),
+                  ),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Smart'),
+                        selected: settings.taskSortMode == TaskSortMode.smart,
+                        selectedColor: cs.primaryContainer,
+                        backgroundColor: cs.surfaceContainerHigh,
+                        checkmarkColor: cs.onSurface,
+                        onSelected: (_) => ref
+                            .read(settingsProvider.notifier)
+                            .update(taskSortMode: TaskSortMode.smart),
+                      ),
+                      ChoiceChip(
+                        label: const Text('Custom'),
+                        selected:
+                            settings.taskSortMode == TaskSortMode.custom,
+                        selectedColor: cs.secondaryContainer,
+                        backgroundColor: cs.surfaceContainerHigh,
+                        checkmarkColor: cs.onSurface,
+                        onSelected: (_) => ref
+                            .read(settingsProvider.notifier)
+                            .update(taskSortMode: TaskSortMode.custom),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
