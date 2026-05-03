@@ -242,7 +242,10 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
         }
       }
 
-      final orderedIds = ordered.map((task) => task.id).toSet();
+      final orderedDayTasks = ordered
+          .where((task) => DateUtilsHelper.isSameDay(task.dueDate, day))
+          .toList();
+      final orderedIds = orderedDayTasks.map((task) => task.id).toSet();
       final remainingDayTasks = <TaskModel>[];
       for (final task in dayTasks) {
         if (!orderedIds.contains(task.id)) {
@@ -250,7 +253,7 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
         }
       }
 
-      final nextDayTasks = [...ordered, ...remainingDayTasks];
+      final nextDayTasks = [...orderedDayTasks, ...remainingDayTasks];
       for (var i = 0; i < nextDayTasks.length; i++) {
         final task = nextDayTasks[i];
         task.sortOrder = i;
