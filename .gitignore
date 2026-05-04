@@ -36,6 +36,11 @@ migrate_working_dir/
 coverage/
 lcov.info
 *.coverage
+# Ignore untracked test artifacts
+test/integration/
+test/unit/
+test/widget/
+test/widget_test.dart
 # test/
 TESTING.md
 AGENTS.md
