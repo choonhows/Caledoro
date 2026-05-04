@@ -93,6 +93,11 @@ class CalendarScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 6),
+              Text(
+                'Smart sorts by priority/time. Custom lets you drag to reorder.',
+                style: tt.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+              ),
               const SizedBox(height: 16),
 
               // ── Tasks for selected day ──

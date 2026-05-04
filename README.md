@@ -11,7 +11,8 @@
 ## 🔑 Features
 
 ### 🧠 Productivity Tools
-- **To‑Do Playlist** — Organize daily tasks into ordered lists
+- **To‑Do Playlist** — Organize daily tasks into ordered lists with custom ordering
+- **Subtasks** — Break tasks into ordered checklists with progress tracking
 - **Pomodoro Timer**  
   - Configurable work/break durations  
   - Short & long breaks  
@@ -24,6 +25,7 @@
 - Tasks optionally linked to calendar dates
 - Task creation supports explicit due-time selection
 - UI calendar navigation with events and task markers
+- Smart vs Custom task ordering per day
 
 ### 🎨 Themes
 - Minimal clean UI
@@ -55,8 +57,9 @@ Data is stored locally using **Hive**:
 
 ### 📦 Data Models
 
-- **TaskModel** – id, title, description, dueDate, priority (enum), completed, recurringDaily  
-- **SettingsModel** – workDuration, shortBreakDuration, longBreakDuration, darkMode, accentColor  
+- **TaskModel** – id, title, description, dueDate, priority (enum), completed, recurringDaily, `subtasks`, `sortOrder`
+- **SubtaskModel** – id, label, completed, sortOrder
+- **SettingsModel** – workDuration, shortBreakDuration, longBreakDuration, darkMode, accentColor, `taskSortMode`
 
 ---
 
