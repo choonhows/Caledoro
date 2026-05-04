@@ -89,10 +89,11 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
         sortOrder: task.sortOrder,
       );
 
+      if (!mounted) return;
+      final messenger = ScaffoldMessenger.of(context);
       await ref.read(taskListProvider.notifier).updateTask(updated);
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Quest updated')));
+      messenger.showSnackBar(const SnackBar(content: Text('Quest updated')));
     }
 
     return Scaffold(

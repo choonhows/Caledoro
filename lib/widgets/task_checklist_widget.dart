@@ -143,7 +143,11 @@ class _QuestCard extends ConsumerStatefulWidget {
 class _QuestCardState extends ConsumerState<_QuestCard> {
   bool _showCompletedSubtasks = false;
 
-  Future<void> _toggleTask(BuildContext context, WidgetRef ref) async {
+  Future<void> _toggleTask(
+    BuildContext context,
+    WidgetRef ref,
+    TaskModel task,
+  ) async {
     try {
       await ref.read(taskListProvider.notifier).toggleComplete(task.id);
     } on TaskOperationException catch (e) {
@@ -207,7 +211,7 @@ class _QuestCardState extends ConsumerState<_QuestCard> {
               children: [
                 // ── Oversized Checkbox (28x28, 10px radius) ──
                 GestureDetector(
-                  onTap: () => _toggleTask(context, ref),
+                  onTap: () => _toggleTask(context, ref, task),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeOut,
