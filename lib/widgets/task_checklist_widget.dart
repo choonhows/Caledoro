@@ -6,10 +6,20 @@ import '../providers/settings_provider.dart';
 import '../providers/task_provider.dart';
 import '../screens/task_detail_screen.dart';
 import '../theme.dart';
+import '../widgets/subtask_list_widget.dart';
 import '../utils/date_utils.dart';
 
 class TaskChecklistWidget extends ConsumerWidget {
-  const TaskChecklistWidget({super.key});
+  final bool showSubtasks;
+  final bool showSubtaskComposer;
+  final bool allowSubtaskReorder;
+
+  const TaskChecklistWidget({
+    super.key,
+    this.showSubtasks = false,
+    this.showSubtaskComposer = false,
+    this.allowSubtaskReorder = true,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -89,19 +99,22 @@ class TaskChecklistWidget extends ConsumerWidget {
         },
         itemBuilder: (context, index) {
           final task = dayTasks[index];
-          return Padding(
-            key: ValueKey(task.id),
-            padding: EdgeInsets.only(bottom: index == dayTasks.length - 1 ? 0 : 12),
-            child: _QuestCard(
-              key: ValueKey('task-${task.id}'),
-              task: task,
-              showDragHandle: true,
-              dragIndex: index,
-              dense: isDense,
-            ),
-          );
-        },
-      );
+            return Padding(
+              key: ValueKey(task.id),
+              padding: EdgeInsets.only(bottom: index == dayTasks.length - 1 ? 0 : 12),
+              child: _QuestCard(
+                key: ValueKey('task-${task.id}'),
+                task: task,
+                showDragHandle: true,
+                dragIndex: index,
+                dense: isDense,
+                showSubtasks: showSubtasks,
+                showSubtaskComposer: showSubtaskComposer,
+                allowSubtaskReorder: allowSubtaskReorder,
+              ),
+            );
+          },
+        );
     }
 
     return ListView.separated(
@@ -115,6 +128,9 @@ class TaskChecklistWidget extends ConsumerWidget {
           key: ValueKey('task-${task.id}'),
           task: task,
           dense: isDense,
+          showSubtasks: showSubtasks,
+          showSubtaskComposer: showSubtaskComposer,
+          allowSubtaskReorder: allowSubtaskReorder,
         );
       },
     );
@@ -127,6 +143,9 @@ class _QuestCard extends ConsumerStatefulWidget {
   final bool showDragHandle;
   final int? dragIndex;
   final bool dense;
+  final bool showSubtasks;
+  final bool showSubtaskComposer;
+  final bool allowSubtaskReorder;
 
   const _QuestCard({
     super.key,
@@ -134,6 +153,9 @@ class _QuestCard extends ConsumerStatefulWidget {
     this.showDragHandle = false,
     this.dragIndex,
     this.dense = false,
+    this.showSubtasks = false,
+    this.showSubtaskComposer = false,
+    this.allowSubtaskReorder = true,
   });
 
   @override
@@ -314,71 +336,87 @@ class _QuestCardState extends ConsumerState<_QuestCard> {
                         ),
                         if (subtasks.isNotEmpty) ...[
                           const SizedBox(height: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              for (final subtask in preview)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 4),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        subtask.completed
-                                            ? Icons.check_circle_rounded
-                                            : Icons.radio_button_unchecked,
-                                        size: 14,
-                                        color: subtask.completed
-                                            ? cs.primary
-                                            : cs.onSurfaceVariant,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          subtask.label,
-                                          style: tt.bodySmall?.copyWith(
-                                            color: subtask.completed
-                                                ? cs.onSurfaceVariant
-                                                    .withValues(alpha: 0.6)
-                                                : cs.onSurfaceVariant,
-                                            decoration: subtask.completed
-                                                ? TextDecoration.lineThrough
-                                                : null,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                          widget.showSubtasks
+                              ? Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: cs.surfaceContainerLow,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: SubtaskListWidget(
+                                    task: task,
+                                    dense: true,
+                                    compact: !widget.showSubtaskComposer,
+                                    showHeader: false,
+                                    allowReorder: widget.allowSubtaskReorder,
+                                  ),
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    for (final subtask in preview)
+                                      Padding(
+                                        padding: const EdgeInsets.only(bottom: 4),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              subtask.completed
+                                                  ? Icons.check_circle_rounded
+                                                  : Icons.radio_button_unchecked,
+                                              size: 14,
+                                              color: subtask.completed
+                                                  ? cs.primary
+                                                  : cs.onSurfaceVariant,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(
+                                                subtask.label,
+                                                style: tt.bodySmall?.copyWith(
+                                                  color: subtask.completed
+                                                      ? cs.onSurfaceVariant
+                                                          .withValues(alpha: 0.6)
+                                                      : cs.onSurfaceVariant,
+                                                  decoration: subtask.completed
+                                                      ? TextDecoration.lineThrough
+                                                      : null,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    if (!_showCompletedSubtasks &&
+                                        completedSubtasks.isNotEmpty)
+                                      GestureDetector(
+                                        onTap: () => setState(() {
+                                          _showCompletedSubtasks = true;
+                                        }),
+                                        child: Text(
+                                          'Show completed (${completedSubtasks.length})',
+                                          style: tt.labelSmall?.copyWith(
+                                            color: cs.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    if (_showCompletedSubtasks &&
+                                        completedSubtasks.isNotEmpty)
+                                      GestureDetector(
+                                        onTap: () => setState(() {
+                                          _showCompletedSubtasks = false;
+                                        }),
+                                        child: Text(
+                                          'Hide completed',
+                                          style: tt.labelSmall?.copyWith(
+                                            color: cs.primary,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 ),
-                              if (!_showCompletedSubtasks &&
-                                  completedSubtasks.isNotEmpty)
-                                GestureDetector(
-                                  onTap: () => setState(() {
-                                    _showCompletedSubtasks = true;
-                                  }),
-                                  child: Text(
-                                    'Show completed (${completedSubtasks.length})',
-                                    style: tt.labelSmall?.copyWith(
-                                      color: cs.primary,
-                                    ),
-                                  ),
-                                ),
-                              if (_showCompletedSubtasks &&
-                                  completedSubtasks.isNotEmpty)
-                                GestureDetector(
-                                  onTap: () => setState(() {
-                                    _showCompletedSubtasks = false;
-                                  }),
-                                  child: Text(
-                                    'Hide completed',
-                                    style: tt.labelSmall?.copyWith(
-                                      color: cs.primary,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
                         ],
                       ],
                     ),

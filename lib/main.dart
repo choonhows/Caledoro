@@ -9,6 +9,7 @@ import 'providers/task_provider.dart';
 import 'theme.dart';
 import 'services/notification_service.dart';
 import 'widgets/pomodoro_timer_widget.dart';
+import 'widgets/task_checklist_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -128,6 +129,32 @@ class _FocusShrineScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             const Center(child: PomodoroTimerWidget()),
+            const SizedBox(height: 28),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Sanctuary Tasks',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: cs.onSurface,
+                    ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Check tasks while the timer runs. Tap a quest to open details.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const TaskChecklistWidget(
+              showSubtasks: true,
+              showSubtaskComposer: false,
+              allowSubtaskReorder: false,
+            ),
             const SizedBox(height: 40),
           ],
         ),

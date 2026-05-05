@@ -7,11 +7,17 @@ import '../theme.dart';
 class SubtaskListWidget extends ConsumerStatefulWidget {
   final TaskModel task;
   final bool dense;
+  final bool compact;
+  final bool showHeader;
+  final bool allowReorder;
 
   const SubtaskListWidget({
     super.key,
     required this.task,
     this.dense = false,
+    this.compact = false,
+    this.showHeader = true,
+    this.allowReorder = true,
   });
 
   @override
@@ -97,48 +103,61 @@ class _SubtaskListWidgetState extends ConsumerState<SubtaskListWidget> {
       vertical: widget.dense ? 8 : 10,
     );
 
+    final inputRow = Container(
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(widget.compact ? 14 : 18),
+      ),
+      padding: widget.compact
+          ? const EdgeInsets.symmetric(horizontal: 10, vertical: 6)
+          : rowPadding,
+      child: Row(
+        children: [
+          Icon(Icons.add_rounded, color: cs.primary, size: widget.compact ? 18 : 22),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: _inputCtrl,
+              decoration: const InputDecoration(
+                hintText: 'Add a subtask',
+                border: InputBorder.none,
+              ),
+              style: widget.compact ? tt.bodySmall : tt.bodyMedium,
+              onSubmitted: (_) => _addSubtask(),
+            ),
+          ),
+          TextButton(
+            onPressed: _addSubtask,
+            style: TextButton.styleFrom(
+              padding: widget.compact
+                  ? const EdgeInsets.symmetric(horizontal: 10, vertical: 6)
+                  : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Text('Subtasks', style: tt.titleSmall?.copyWith(color: cs.onSurface)),
-            const Spacer(),
-            if (completedSubtasks.isNotEmpty)
-              TextButton(
-                onPressed: _clearCompleted,
-                child: const Text('Clear completed'),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(18),
-          ),
-          padding: rowPadding,
-          child: Row(
+        if (widget.showHeader)
+          Row(
             children: [
-              Icon(Icons.add_rounded, color: cs.primary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _inputCtrl,
-                  decoration: const InputDecoration(
-                    hintText: 'Add a subtask',
-                    border: InputBorder.none,
-                  ),
-                  onSubmitted: (_) => _addSubtask(),
+              Text('Subtasks', style: tt.titleSmall?.copyWith(color: cs.onSurface)),
+              const Spacer(),
+              if (completedSubtasks.isNotEmpty)
+                TextButton(
+                  onPressed: _clearCompleted,
+                  child: const Text('Clear completed'),
                 ),
-              ),
-              TextButton(
-                onPressed: _addSubtask,
-                child: const Text('Add'),
-              ),
             ],
           ),
-        ),
+        if (widget.showHeader) const SizedBox(height: 8),
+        if (!widget.compact) inputRow,
         const SizedBox(height: 12),
         if (subtasks.isEmpty)
           Text(
@@ -146,96 +165,157 @@ class _SubtaskListWidgetState extends ConsumerState<SubtaskListWidget> {
             style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
           )
         else
-          ReorderableListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            buildDefaultDragHandles: false,
-            itemCount: visible.length,
-            onReorder: (oldIndex, newIndex) async {
-              var nextIndex = newIndex;
-              if (nextIndex > oldIndex) nextIndex -= 1;
-              final reordered = [...subtasks];
-              final moving = visible[oldIndex];
-              final visibleOrdered = [...visible]..removeAt(oldIndex);
-              visibleOrdered.insert(nextIndex, moving);
+          widget.allowReorder
+              ? ReorderableListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  buildDefaultDragHandles: false,
+                  itemCount: visible.length,
+                  onReorder: (oldIndex, newIndex) async {
+                    var nextIndex = newIndex;
+                    if (nextIndex > oldIndex) nextIndex -= 1;
+                    final reordered = [...subtasks];
+                    final moving = visible[oldIndex];
+                    final visibleOrdered = [...visible]..removeAt(oldIndex);
+                    visibleOrdered.insert(nextIndex, moving);
 
-              if (_showCompleted) {
-                reordered
-                  ..clear()
-                  ..addAll(visibleOrdered);
-              } else {
-                var pendingIndex = 0;
-                for (var i = 0; i < reordered.length; i++) {
-                  if (!reordered[i].completed) {
-                    reordered[i] = visibleOrdered[pendingIndex];
-                    pendingIndex += 1;
-                  }
-                }
-              }
-              await ref
-                  .read(taskListProvider.notifier)
-                  .reorderSubtasks(task.id, reordered);
-            },
-            itemBuilder: (context, index) {
-              final subtask = visible[index];
-              return Container(
-                key: ValueKey('subtask-${subtask.id}'),
-                margin: EdgeInsets.only(bottom: index == visible.length - 1 ? 0 : 8),
-                padding: rowPadding,
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerLowest,
-                  borderRadius: BorderRadius.circular(16),
+                    if (_showCompleted) {
+                      reordered
+                        ..clear()
+                        ..addAll(visibleOrdered);
+                    } else {
+                      var pendingIndex = 0;
+                      for (var i = 0; i < reordered.length; i++) {
+                        if (!reordered[i].completed) {
+                          reordered[i] = visibleOrdered[pendingIndex];
+                          pendingIndex += 1;
+                        }
+                      }
+                    }
+                    await ref
+                        .read(taskListProvider.notifier)
+                        .reorderSubtasks(task.id, reordered);
+                  },
+                  itemBuilder: (context, index) {
+                    final subtask = visible[index];
+                    return Container(
+                      key: ValueKey('subtask-${subtask.id}'),
+                      margin: EdgeInsets.only(
+                          bottom: index == visible.length - 1 ? 0 : 8),
+                      padding: rowPadding,
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => ref
+                                .read(taskListProvider.notifier)
+                                .toggleSubtask(task.id, subtask.id),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: subtask.completed
+                                    ? CozyColors.primary
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                                border: subtask.completed
+                                    ? null
+                                    : Border.all(color: cs.outline, width: 1.5),
+                              ),
+                              child: subtask.completed
+                                  ? const Icon(Icons.check_rounded,
+                                      size: 14, color: CozyColors.onPrimary)
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              subtask.label,
+                              style: tt.bodySmall?.copyWith(
+                                color: subtask.completed
+                                    ? cs.onSurfaceVariant.withValues(alpha: 0.6)
+                                    : cs.onSurface,
+                                decoration: subtask.completed
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
+                            ),
+                          ),
+                          ReorderableDragStartListener(
+                            index: index,
+                            child: Icon(
+                              Icons.drag_handle_rounded,
+                              color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: visible.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final subtask = visible[index];
+                    return Container(
+                      key: ValueKey('subtask-${subtask.id}'),
+                      padding: rowPadding,
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => ref
+                                .read(taskListProvider.notifier)
+                                .toggleSubtask(task.id, subtask.id),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: subtask.completed
+                                    ? CozyColors.primary
+                                    : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                                border: subtask.completed
+                                    ? null
+                                    : Border.all(color: cs.outline, width: 1.5),
+                              ),
+                              child: subtask.completed
+                                  ? const Icon(Icons.check_rounded,
+                                      size: 14, color: CozyColors.onPrimary)
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              subtask.label,
+                              style: tt.bodySmall?.copyWith(
+                                color: subtask.completed
+                                    ? cs.onSurfaceVariant.withValues(alpha: 0.6)
+                                    : cs.onSurface,
+                                decoration: subtask.completed
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
                 ),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => ref
-                          .read(taskListProvider.notifier)
-                          .toggleSubtask(task.id, subtask.id),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: subtask.completed
-                              ? CozyColors.primary
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(6),
-                          border: subtask.completed
-                              ? null
-                              : Border.all(color: cs.outline, width: 1.5),
-                        ),
-                        child: subtask.completed
-                            ? const Icon(Icons.check_rounded,
-                                size: 14, color: CozyColors.onPrimary)
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        subtask.label,
-                        style: tt.bodySmall?.copyWith(
-                          color: subtask.completed
-                              ? cs.onSurfaceVariant.withValues(alpha: 0.6)
-                              : cs.onSurface,
-                          decoration:
-                              subtask.completed ? TextDecoration.lineThrough : null,
-                        ),
-                      ),
-                    ),
-                    ReorderableDragStartListener(
-                      index: index,
-                      child: Icon(
-                        Icons.drag_handle_rounded,
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.5),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
         if (completedSubtasks.isNotEmpty)
           TextButton(
             onPressed: () => setState(() {
@@ -247,6 +327,10 @@ class _SubtaskListWidgetState extends ConsumerState<SubtaskListWidget> {
                   : 'Show completed (${completedSubtasks.length})',
             ),
           ),
+        if (widget.compact) ...[
+          const SizedBox(height: 8),
+          inputRow,
+        ],
       ],
     );
   }

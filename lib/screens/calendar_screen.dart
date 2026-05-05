@@ -164,6 +164,9 @@ class _AddTaskPanelState extends ConsumerState<_AddTaskPanel> {
     final tt = Theme.of(context).textTheme;
     final dueDate = _dueDate ?? DateTime.now();
 
+    final glassTop = cs.surfaceContainerHighest.withValues(alpha: 0.92);
+    final glassBottom = cs.surfaceContainerLow.withValues(alpha: 0.88);
+
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       child: BackdropFilter(
@@ -171,7 +174,11 @@ class _AddTaskPanelState extends ConsumerState<_AddTaskPanel> {
         child: Container(
           decoration: BoxDecoration(
             // Glassmorphism: surface_variant at 60% opacity + backdrop blur
-            color: CozyColors.surfaceVariant.withValues(alpha: 0.85),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [glassTop, glassBottom],
+            ),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           padding: EdgeInsets.only(
