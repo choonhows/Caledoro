@@ -10,6 +10,7 @@ class SubtaskListWidget extends ConsumerStatefulWidget {
   final bool compact;
   final bool showHeader;
   final bool allowReorder;
+  final bool showComposer;
 
   const SubtaskListWidget({
     super.key,
@@ -18,6 +19,7 @@ class SubtaskListWidget extends ConsumerStatefulWidget {
     this.compact = false,
     this.showHeader = true,
     this.allowReorder = true,
+    this.showComposer = true,
   });
 
   @override
@@ -157,7 +159,7 @@ class _SubtaskListWidgetState extends ConsumerState<SubtaskListWidget> {
             ],
           ),
         if (widget.showHeader) const SizedBox(height: 8),
-        if (!widget.compact) inputRow,
+        if (!widget.showComposer && !widget.compact) inputRow,
         const SizedBox(height: 12),
         if (subtasks.isEmpty)
           Text(
@@ -327,7 +329,7 @@ class _SubtaskListWidgetState extends ConsumerState<SubtaskListWidget> {
                   : 'Show completed (${completedSubtasks.length})',
             ),
           ),
-        if (widget.compact) ...[
+        if (widget.showComposer && widget.compact) ...[
           const SizedBox(height: 8),
           inputRow,
         ],

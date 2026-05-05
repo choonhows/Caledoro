@@ -350,6 +350,7 @@ class _QuestCardState extends ConsumerState<_QuestCard> {
                                     compact: !widget.showSubtaskComposer,
                                     showHeader: false,
                                     allowReorder: widget.allowSubtaskReorder,
+                                    showComposer: widget.showSubtaskComposer
                                   ),
                                 )
                               : Column(
