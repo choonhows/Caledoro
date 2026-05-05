@@ -10,6 +10,7 @@ import 'theme.dart';
 import 'services/notification_service.dart';
 import 'widgets/pomodoro_timer_widget.dart';
 import 'widgets/task_checklist_widget.dart';
+import 'utils/date_utils.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -87,12 +88,24 @@ class _CaledoroAppState extends ConsumerState<CaledoroApp> {
 
 /// The Focus Shrine tab wraps the PomodoroTimerWidget in a full-screen layout
 /// with a settings gear icon and the cozy design system styling.
-class _FocusShrineScreen extends StatelessWidget {
+class _FocusShrineScreen extends ConsumerWidget {
   const _FocusShrineScreen();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    final tt = Theme.of(context).textTheme;
+    final tasks = ref.watch(taskListProvider);
+    final selectedDate = ref.watch(selectedDateProvider);
+    final settings = ref.watch(settingsProvider);
+
+    final dayTasks = tasks
+        .where((task) => DateUtilsHelper.isSameDay(task.dueDate, selectedDate))
+        .toList();
+    final remaining = dayTasks.where((t) => !t.completed).length;
+    final remainingLabel =
+        '$remaining task${remaining == 1 ? '' : 's'} left';
+    final focusMinutes = settings.workMinutes;
 
     return Scaffold(
       appBar: AppBar(
@@ -113,28 +126,84 @@ class _FocusShrineScreen extends StatelessWidget {
         child: Column(
           children: [
             SizedBox(height: MediaQuery.of(context).size.height * 0.04),
-            // Phase indicator chip
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              decoration: BoxDecoration(
-                color: cs.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(100),
-              ),
-              child: Text(
-                'Phase: Deep Work',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.wb_sunny_outlined,
+                      size: 16,
                       color: cs.onSurfaceVariant,
                     ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Focus Session',
+                      style: tt.labelLarge?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerLowest,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        'Pomodoro',
+                        style: tt.labelSmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 32),
-            const Center(child: PomodoroTimerWidget()),
             const SizedBox(height: 28),
+            const Center(child: PomodoroTimerWidget()),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.timer_outlined,
+                      size: 16,
+                      color: cs.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Focus · $focusMinutes min · $remainingLabel',
+                      style: tt.bodySmall?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
                 'Sanctuary Tasks',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                style: tt.titleLarge?.copyWith(
                       color: cs.onSurface,
                     ),
               ),
@@ -143,17 +212,28 @@ class _FocusShrineScreen extends StatelessWidget {
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                'Check tasks while the timer runs. Tap a quest to open details.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                'Stay grounded, check your quests, then return to focus.',
+                style: tt.bodySmall?.copyWith(
                       color: cs.onSurfaceVariant,
                     ),
               ),
             ),
             const SizedBox(height: 12),
-            const TaskChecklistWidget(
-              showSubtasks: true,
-              showSubtaskComposer: false,
-              allowSubtaskReorder: false,
+            Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerLow,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const TaskChecklistWidget(
+                  showSubtasks: true,
+                  showSubtaskComposer: false,
+                  allowSubtaskReorder: false,
+                  allowTaskReorder: false,
+                ),
+              ),
             ),
             const SizedBox(height: 40),
           ],

@@ -13,12 +13,14 @@ class TaskChecklistWidget extends ConsumerWidget {
   final bool showSubtasks;
   final bool showSubtaskComposer;
   final bool allowSubtaskReorder;
+  final bool allowTaskReorder;
 
   const TaskChecklistWidget({
     super.key,
     this.showSubtasks = false,
     this.showSubtaskComposer = false,
     this.allowSubtaskReorder = true,
+    this.allowTaskReorder = true,
   });
 
   @override
@@ -79,7 +81,7 @@ class TaskChecklistWidget extends ConsumerWidget {
 
     final isDense = dayTasks.length > 6;
 
-    if (settings.taskSortMode == TaskSortMode.custom) {
+    if (settings.taskSortMode == TaskSortMode.custom && allowTaskReorder) {
       return ReorderableListView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
@@ -193,6 +195,7 @@ class _QuestCardState extends ConsumerState<_QuestCard> {
     final task = widget.task;
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    final isShrine = widget.showSubtasks && !widget.showSubtaskComposer;
 
     // Priority dot color from design tokens
     final priorityColor = switch (task.priority) {
@@ -350,7 +353,7 @@ class _QuestCardState extends ConsumerState<_QuestCard> {
                                     compact: !widget.showSubtaskComposer,
                                     showHeader: false,
                                     allowReorder: widget.allowSubtaskReorder,
-                                    showComposer: widget.showSubtaskComposer
+                                    showComposer: widget.showSubtaskComposer,
                                   ),
                                 )
                               : Column(
@@ -431,6 +434,21 @@ class _QuestCardState extends ConsumerState<_QuestCard> {
                         Icons.drag_handle_rounded,
                         color: cs.onSurfaceVariant.withValues(alpha: 0.5),
                         size: 24,
+                      ),
+                    )
+                  else if (isShrine && subtasks.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '${completedCount}/${subtasks.length}',
+                        style: tt.labelSmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
                     )
                   else if (!task.completed)

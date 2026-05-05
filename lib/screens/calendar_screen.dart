@@ -139,10 +139,13 @@ class _AddTaskPanelState extends ConsumerState<_AddTaskPanel> {
   final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  final _subtaskCtrl = TextEditingController();
   DateTime? _dueDate;
   TimeOfDay? _dueTime;
   TaskPriority _priority = TaskPriority.medium;
   bool _recurring = false;
+  final List<String> _subtasks = [];
+  static const int _maxSubtasks = 10;
 
   @override
   void initState() {
@@ -155,7 +158,24 @@ class _AddTaskPanelState extends ConsumerState<_AddTaskPanel> {
   void dispose() {
     _titleCtrl.dispose();
     _descCtrl.dispose();
+    _subtaskCtrl.dispose();
     super.dispose();
+  }
+
+  void _addSubtask(BuildContext context) {
+    final label = _subtaskCtrl.text.trim();
+    if (label.isEmpty) return;
+    if (_subtasks.length >= _maxSubtasks) return;
+    if (label.length > 200) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Subtask must be 200 characters or less')),
+      );
+      return;
+    }
+    setState(() {
+      _subtasks.add(label);
+      _subtaskCtrl.clear();
+    });
   }
 
   @override
@@ -163,6 +183,7 @@ class _AddTaskPanelState extends ConsumerState<_AddTaskPanel> {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
     final dueDate = _dueDate ?? DateTime.now();
+    final canAddSubtask = _subtasks.length < _maxSubtasks;
 
     final glassTop = cs.surfaceContainerHighest.withValues(alpha: 0.92);
     final glassBottom = cs.surfaceContainerLow.withValues(alpha: 0.88);
@@ -239,6 +260,125 @@ class _AddTaskPanelState extends ConsumerState<_AddTaskPanel> {
                         ? 'Description must be 500 characters or less'
                         : null,
                   ),
+                  const SizedBox(height: 16),
+
+                  Text(
+                    'Subtasks (${_subtasks.length}/$_maxSubtasks)',
+                    style: tt.labelLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  AnimatedOpacity(
+                    duration: const Duration(milliseconds: 200),
+                    opacity: canAddSubtask ? 1 : 0.55,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: cs.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.add_rounded,
+                            color: canAddSubtask
+                                ? cs.primary
+                                : cs.onSurfaceVariant,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextField(
+                              controller: _subtaskCtrl,
+                              decoration: const InputDecoration(
+                                hintText: 'Add a subtask',
+                                border: InputBorder.none,
+                              ),
+                              style: tt.bodyMedium,
+                              enabled: canAddSubtask,
+                              onSubmitted: canAddSubtask
+                                  ? (_) => _addSubtask(context)
+                                  : null,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: canAddSubtask
+                                ? () => _addSubtask(context)
+                                : null,
+                            child: const Text('Add'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  AnimatedCrossFade(
+                    duration: const Duration(milliseconds: 200),
+                    crossFadeState: canAddSubtask
+                        ? CrossFadeState.showFirst
+                        : CrossFadeState.showSecond,
+                    firstChild: const SizedBox.shrink(),
+                    secondChild: Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        'Max $_maxSubtasks subtasks reached',
+                        style: tt.bodySmall?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_subtasks.isEmpty)
+                    Text(
+                      'No subtasks yet. Add a step if needed.',
+                      style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                    )
+                  else
+                    Column(
+                      children: [
+                        for (var i = 0; i < _subtasks.length; i++)
+                          Container(
+                            margin: EdgeInsets.only(
+                                bottom: i == _subtasks.length - 1 ? 0 : 8),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: cs.surfaceContainerLowest,
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.radio_button_unchecked,
+                                  size: 16,
+                                  color: cs.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _subtasks[i],
+                                    style: tt.bodySmall?.copyWith(
+                                      color: cs.onSurface,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  onPressed: () => setState(() {
+                                    _subtasks.removeAt(i);
+                                  }),
+                                  icon: Icon(
+                                    Icons.close_rounded,
+                                    size: 18,
+                                    color: cs.onSurfaceVariant,
+                                  ),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
                   const SizedBox(height: 16),
 
                   // ── Due date ──
@@ -388,6 +528,7 @@ class _AddTaskPanelState extends ConsumerState<_AddTaskPanel> {
                                   dueDate: dueDateTime,
                                   priority: _priority,
                                   recurringDaily: _recurring,
+                                  subtaskLabels: _subtasks,
                                 );
                             if (context.mounted) Navigator.pop(context);
                           } catch (e) {
