@@ -4,6 +4,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 class NotificationService {
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
+  static const int _timerNotificationId = 1001;
+  static const String _timerChannelId = 'pomodoro_timer_channel';
+  static const String _timerChannelName = 'Pomodoro Timer';
+  static const String _timerChannelDescription =
+      'Live pomodoro timer updates';
 
   static Future<void> init() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -20,10 +25,20 @@ class NotificationService {
       description: 'Pomodoro timer completion updates',
       importance: Importance.defaultImportance,
     );
+    const timerChannel = AndroidNotificationChannel(
+      _timerChannelId,
+      _timerChannelName,
+      description: _timerChannelDescription,
+      importance: Importance.low,
+    );
     await _plugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(timerChannel);
 
     await _requestPermissions();
   }
@@ -100,6 +115,53 @@ class NotificationService {
       );
     } catch (e) {
       debugPrint('Notification failure: $e');
+    }
+  }
+
+  static Future<void> showOngoingTimerNotification({
+    required String title,
+    required String body,
+  }) async {
+    const androidDetails = AndroidNotificationDetails(
+      _timerChannelId,
+      _timerChannelName,
+      channelDescription: _timerChannelDescription,
+      importance: Importance.low,
+      priority: Priority.low,
+      ongoing: true,
+      autoCancel: false,
+      onlyAlertOnce: true,
+      showWhen: false,
+      icon: 'ic_launcher',
+      enableVibration: false,
+      playSound: false,
+    );
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: DarwinNotificationDetails(
+        presentAlert: true,
+        presentSound: false,
+        presentBadge: false,
+      ),
+    );
+
+    try {
+      await _plugin.show(
+        id: _timerNotificationId,
+        title: title,
+        body: body,
+        notificationDetails: details,
+      );
+    } catch (e) {
+      debugPrint('Timer notification failure: $e');
+    }
+  }
+
+  static Future<void> cancelTimerNotification() async {
+    try {
+      await _plugin.cancel(_timerNotificationId);
+    } catch (e) {
+      debugPrint('Timer notification cancel failed: $e');
     }
   }
 }

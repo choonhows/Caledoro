@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'services/hive_service.dart';
+import 'services/foreground_timer_service.dart';
 import 'screens/home_widget_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/pomodoro_settings_screen.dart';
@@ -14,6 +15,7 @@ import 'utils/date_utils.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  ForegroundTimerService.init();
   await HiveService.init();
   await NotificationService.init();
 

@@ -4,6 +4,8 @@ import 'package:hive/hive.dart';
 import '../models/pomodoro_phase.dart';
 import '../models/pomodoro_timer_model.dart';
 import '../services/hive_service.dart';
+import '../services/foreground_timer_service.dart';
+import '../services/notification_service.dart';
 import '../services/widget_service.dart';
 import 'settings_provider.dart';
 
@@ -62,11 +64,17 @@ class PomodoroTimerNotifier extends Notifier<PomodoroTimerModel> {
     state = state.copyWith(isRunning: true);
     _saveState();
     _updateWidgets(force: true);
+    _ensureForegroundService();
+    _updateOngoingNotification();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (state.remainingSeconds > 0) {
         state = state.copyWith(remainingSeconds: state.remainingSeconds - 1);
         _saveState();
         _updateWidgets();
+        if (state.remainingSeconds % 10 == 0) {
+          _updateOngoingNotification();
+          _updateForegroundService();
+        }
       } else {
         _handlePhaseCompletion();
       }
@@ -78,6 +86,8 @@ class PomodoroTimerNotifier extends Notifier<PomodoroTimerModel> {
     state = state.copyWith(isRunning: false);
     _saveState();
     _updateWidgets(force: true);
+    NotificationService.cancelTimerNotification();
+    ForegroundTimerService.stop();
   }
 
   void skipPhase() {
@@ -87,6 +97,7 @@ class PomodoroTimerNotifier extends Notifier<PomodoroTimerModel> {
   void _transitionToNextPhase({required bool autoStart}) {
     _timer?.cancel();
     final newPhase = _nextPhase();
+    final completedPhase = state.phase;
     final newRemaining = _phaseDurationSeconds(newPhase);
     final completedPomodoros = newPhase == PomodoroPhase.work
         ? state.completedPomodoros
@@ -100,8 +111,19 @@ class PomodoroTimerNotifier extends Notifier<PomodoroTimerModel> {
     _saveState();
     _updateWidgets(force: true);
 
+    final settings = ref.read(settingsProvider);
+    if (settings.notificationsEnabled) {
+      NotificationService.showPhaseNotification(
+        title: 'Pomodoro Complete',
+        body: _phaseCompletionBody(completedPhase),
+      );
+    }
+
     if (autoStart && ref.read(settingsProvider).autoStartNext) {
       _startTimer();
+    } else {
+      NotificationService.cancelTimerNotification();
+      ForegroundTimerService.stop();
     }
   }
 
@@ -125,6 +147,71 @@ class PomodoroTimerNotifier extends Notifier<PomodoroTimerModel> {
 
   void _saveState() {
     _box.put('timer', state);
+  }
+
+  void _updateOngoingNotification() {
+    if (!state.isRunning) return;
+    final settings = ref.read(settingsProvider);
+    if (!settings.notificationsEnabled) {
+      NotificationService.cancelTimerNotification();
+      return;
+    }
+
+    NotificationService.showOngoingTimerNotification(
+      title: _phaseTitle(state.phase),
+      body:
+          '${_formatTime(state.remainingSeconds)} left · ${_phaseSubtitle(state.phase)}',
+    );
+  }
+
+  void _ensureForegroundService() {
+    final settings = ref.read(settingsProvider);
+    if (!settings.notificationsEnabled) return;
+    ForegroundTimerService.start(
+      title: _phaseTitle(state.phase),
+      text:
+          '${_formatTime(state.remainingSeconds)} left · ${_phaseSubtitle(state.phase)}',
+    );
+  }
+
+  void _updateForegroundService() {
+    final settings = ref.read(settingsProvider);
+    if (!settings.notificationsEnabled) return;
+    ForegroundTimerService.update(
+      title: _phaseTitle(state.phase),
+      text:
+          '${_formatTime(state.remainingSeconds)} left · ${_phaseSubtitle(state.phase)}',
+    );
+  }
+
+  String _formatTime(int seconds) {
+    final minutes = seconds ~/ 60;
+    final secs = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  String _phaseTitle(PomodoroPhase phase) {
+    return switch (phase) {
+      PomodoroPhase.work => 'Sanctuary Timer',
+      PomodoroPhase.shortBreak => 'Short Break',
+      PomodoroPhase.longBreak => 'Long Break',
+    };
+  }
+
+  String _phaseSubtitle(PomodoroPhase phase) {
+    return switch (phase) {
+      PomodoroPhase.work => 'Focus session',
+      PomodoroPhase.shortBreak => 'Rest moment',
+      PomodoroPhase.longBreak => 'Recharge',
+    };
+  }
+
+  String _phaseCompletionBody(PomodoroPhase phase) {
+    return switch (phase) {
+      PomodoroPhase.work => 'Work session complete. Time for a break.',
+      PomodoroPhase.shortBreak => 'Break complete. Back to deep work.',
+      PomodoroPhase.longBreak => 'Long break complete. Back to deep work.',
+    };
   }
 
 }

@@ -5,7 +5,6 @@ import '../providers/pomodoro_timer_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/task_provider.dart';
 import '../services/audio_service.dart';
-import '../services/notification_service.dart';
 import '../theme.dart';
 import '../utils/date_utils.dart';
 
@@ -56,18 +55,6 @@ class PomodoroTimerWidget extends ConsumerWidget {
     ref.listen(pomodoroTimerProvider, (previous, next) {
       if (previous == null || previous.phase == next.phase) return;
       final finishedPhase = previous.phase;
-
-      if (settings.notificationsEnabled) {
-        final body = switch (finishedPhase) {
-          PomodoroPhase.work => 'Work session complete. Time for a break.',
-          PomodoroPhase.shortBreak => 'Break complete. Back to deep work.',
-          PomodoroPhase.longBreak => 'Long break complete. Back to deep work.',
-        };
-        NotificationService.showPhaseNotification(
-          title: 'Pomodoro Complete',
-          body: body,
-        );
-      }
 
       if (settings.soundEnabled) {
         switch (finishedPhase) {
