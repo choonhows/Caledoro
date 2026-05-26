@@ -7,7 +7,8 @@ import '../services/hive_service.dart';
 import '../services/widget_service.dart';
 import 'settings_provider.dart';
 
-final pomodoroTimerProvider = NotifierProvider<PomodoroTimerNotifier, PomodoroTimerModel>(
+final pomodoroTimerProvider =
+    NotifierProvider<PomodoroTimerNotifier, PomodoroTimerModel>(
   PomodoroTimerNotifier.new,
 );
 
@@ -39,6 +40,15 @@ class PomodoroTimerNotifier extends Notifier<PomodoroTimerModel> {
     };
   }
 
+  void _updateWidgets({bool force = false}) {
+    WidgetService.updateWidgets(
+      secondsRemaining: state.remainingSeconds,
+      isWorking: state.phase == PomodoroPhase.work,
+      completedTasks: state.completedPomodoros,
+      force: force,
+    );
+  }
+
   void toggleTimer() {
     if (state.isRunning) {
       _pauseTimer();
@@ -48,23 +58,15 @@ class PomodoroTimerNotifier extends Notifier<PomodoroTimerModel> {
   }
 
   void _startTimer() {
+    _timer?.cancel();
     state = state.copyWith(isRunning: true);
     _saveState();
-    WidgetService.updateWidgets(
-      secondsRemaining: state.remainingSeconds,
-      isWorking: state.phase == PomodoroPhase.work,
-      completedTasks: state.completedPomodoros,
-      force: true,
-    );
+    _updateWidgets(force: true);
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (state.remainingSeconds > 0) {
         state = state.copyWith(remainingSeconds: state.remainingSeconds - 1);
         _saveState();
-        WidgetService.updateWidgets(
-          secondsRemaining: state.remainingSeconds,
-          isWorking: state.phase == PomodoroPhase.work,
-          completedTasks: state.completedPomodoros,
-        );
+        _updateWidgets();
       } else {
         _handlePhaseCompletion();
       }
@@ -75,31 +77,32 @@ class PomodoroTimerNotifier extends Notifier<PomodoroTimerModel> {
     _timer?.cancel();
     state = state.copyWith(isRunning: false);
     _saveState();
-    WidgetService.updateWidgets(
-      secondsRemaining: state.remainingSeconds,
-      isWorking: state.phase == PomodoroPhase.work,
-      completedTasks: state.completedPomodoros,
-      force: true,
-    );
+    _updateWidgets(force: true);
   }
 
   void skipPhase() {
+    _transitionToNextPhase(autoStart: false);
+  }
+
+  void _transitionToNextPhase({required bool autoStart}) {
     _timer?.cancel();
     final newPhase = _nextPhase();
     final newRemaining = _phaseDurationSeconds(newPhase);
+    final completedPomodoros = newPhase == PomodoroPhase.work
+        ? state.completedPomodoros
+        : state.completedPomodoros + 1;
     state = state.copyWith(
       phase: newPhase,
       remainingSeconds: newRemaining,
-      completedPomodoros: newPhase == PomodoroPhase.work ? state.completedPomodoros : state.completedPomodoros + 1,
+      completedPomodoros: completedPomodoros,
       isRunning: false,
     );
     _saveState();
-    WidgetService.updateWidgets(
-      secondsRemaining: state.remainingSeconds,
-      isWorking: state.phase == PomodoroPhase.work,
-      completedTasks: state.completedPomodoros,
-      force: true,
-    );
+    _updateWidgets(force: true);
+
+    if (autoStart && ref.read(settingsProvider).autoStartNext) {
+      _startTimer();
+    }
   }
 
   PomodoroPhase _nextPhase() {
@@ -117,26 +120,7 @@ class PomodoroTimerNotifier extends Notifier<PomodoroTimerModel> {
   }
 
   void _handlePhaseCompletion() {
-    _timer?.cancel();
-    final newPhase = _nextPhase();
-    final newRemaining = _phaseDurationSeconds(newPhase);
-    state = state.copyWith(
-      phase: newPhase,
-      remainingSeconds: newRemaining,
-      completedPomodoros: newPhase == PomodoroPhase.work ? state.completedPomodoros : state.completedPomodoros + 1,
-      isRunning: false,
-    );
-    _saveState();
-    WidgetService.updateWidgets(
-      secondsRemaining: state.remainingSeconds,
-      isWorking: state.phase == PomodoroPhase.work,
-      completedTasks: state.completedPomodoros,
-      force: true,
-    );
-    // Auto-start next if enabled
-    if (ref.read(settingsProvider).autoStartNext) {
-      _startTimer();
-    }
+    _transitionToNextPhase(autoStart: true);
   }
 
   void _saveState() {

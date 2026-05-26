@@ -89,9 +89,7 @@ class TaskChecklistWidget extends ConsumerWidget {
         itemCount: dayTasks.length,
         onReorder: (oldIndex, newIndex) async {
           var nextIndex = newIndex;
-          if (nextIndex > oldIndex) {
-            nextIndex -= 1;
-          }
+          if (nextIndex > oldIndex) nextIndex -= 1;
           final reordered = [...dayTasks];
           final task = reordered.removeAt(oldIndex);
           reordered.insert(nextIndex, task);
@@ -101,22 +99,23 @@ class TaskChecklistWidget extends ConsumerWidget {
         },
         itemBuilder: (context, index) {
           final task = dayTasks[index];
-            return Padding(
-              key: ValueKey(task.id),
-              padding: EdgeInsets.only(bottom: index == dayTasks.length - 1 ? 0 : 12),
-              child: _QuestCard(
-                key: ValueKey('task-${task.id}'),
-                task: task,
-                showDragHandle: true,
-                dragIndex: index,
-                dense: isDense,
-                showSubtasks: showSubtasks,
-                showSubtaskComposer: showSubtaskComposer,
-                allowSubtaskReorder: allowSubtaskReorder,
-              ),
-            );
-          },
-        );
+          return Padding(
+            key: ValueKey(task.id),
+            padding:
+                EdgeInsets.only(bottom: index == dayTasks.length - 1 ? 0 : 12),
+            child: _QuestCard(
+              key: ValueKey('task-${task.id}'),
+              task: task,
+              showDragHandle: true,
+              dragIndex: index,
+              dense: isDense,
+              showSubtasks: showSubtasks,
+              showSubtaskComposer: showSubtaskComposer,
+              allowSubtaskReorder: allowSubtaskReorder,
+            ),
+          );
+        },
+      );
     }
 
     return ListView.separated(

@@ -45,6 +45,58 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
     return HiveService.tasksBox().values.toList();
   }
 
+  int _nextSortOrder(DateTime day, {String? excludeId}) {
+    final sameDay = state.where(
+      (task) =>
+          DateUtilsHelper.isSameDay(task.dueDate, day) &&
+          task.id != excludeId,
+    );
+    if (sameDay.isEmpty) return 0;
+    final maxOrder = sameDay.map((task) => task.sortOrder).reduce(math.max);
+    return maxOrder + 1;
+  }
+
+  List<SubtaskModel> _buildSubtasks(List<String> labels) {
+    final subtasks = <SubtaskModel>[];
+    for (final label in labels) {
+      final trimmed = label.trim();
+      if (trimmed.isEmpty) continue;
+      subtasks.add(SubtaskModel(
+        id: const Uuid().v4(),
+        label: trimmed,
+        sortOrder: subtasks.length,
+      ));
+    }
+    return subtasks;
+  }
+
+  List<SubtaskModel> _withSequentialOrder(List<SubtaskModel> subtasks) {
+    for (var i = 0; i < subtasks.length; i++) {
+      subtasks[i].sortOrder = i;
+    }
+    return subtasks;
+  }
+
+  void _syncCompletionFromSubtasks(
+    TaskModel task, {
+    bool resetWhenEmpty = false,
+  }) {
+    if (task.subtasks.isEmpty) {
+      if (resetWhenEmpty) {
+        task.completed = false;
+        task.lastCompletedDate = null;
+      }
+      return;
+    }
+    final allCompleted = task.subtasks.every((s) => s.completed);
+    task.completed = allCompleted;
+    task.lastCompletedDate = allCompleted ? DateTime.now() : null;
+  }
+
+  void _updateTaskAt(int index, TaskModel task) {
+    state = [...state]..[index] = task;
+  }
+
   Future<void> addTask({
     required String title,
     String description = '',
@@ -53,23 +105,7 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
     bool recurringDaily = false,
     List<String> subtaskLabels = const [],
   }) async {
-    final sameDay = state.where(
-      (task) => DateUtilsHelper.isSameDay(task.dueDate, dueDate),
-    );
-    final maxOrder = sameDay.isEmpty
-        ? -1
-        : sameDay.map((task) => task.sortOrder).reduce(math.max);
-    final nextOrder = maxOrder + 1;
-    final subtasks = <SubtaskModel>[];
-    for (var i = 0; i < subtaskLabels.length; i++) {
-      final label = subtaskLabels[i].trim();
-      if (label.isEmpty) continue;
-      subtasks.add(SubtaskModel(
-        id: const Uuid().v4(),
-        label: label,
-        sortOrder: subtasks.length,
-      ));
-    }
+    final subtasks = _buildSubtasks(subtaskLabels);
     final task = TaskModel(
       id: const Uuid().v4(),
       title: title.trim(),
@@ -78,7 +114,7 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
       priority: priority,
       recurringDaily: recurringDaily,
       subtasks: subtasks,
-      sortOrder: nextOrder,
+      sortOrder: _nextSortOrder(dueDate),
     );
     final box = HiveService.tasksBox();
     try {
@@ -99,6 +135,7 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
     if (index == -1) return;
     final task = state[index];
     try {
+      final now = DateTime.now();
       final nextCompleted = !task.completed;
       if (task.subtasks.isNotEmpty) {
         for (final subtask in task.subtasks) {
@@ -106,12 +143,12 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
         }
       }
       task.completed = nextCompleted;
-      task.lastCompletedDate = nextCompleted ? DateTime.now() : null;
+      task.lastCompletedDate = nextCompleted ? now : null;
       await task.save();
-      state = [...state]..[index] = task;
+      _updateTaskAt(index, task);
 
       if (task.recurringDaily && task.completed) {
-        await _updateStreakOnRecurringCompletion(DateTime.now());
+        await _updateStreakOnRecurringCompletion(now);
       }
     } catch (e, stackTrace) {
       Error.throwWithStackTrace(
@@ -128,13 +165,7 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
     );
 
     if (!DateUtilsHelper.isSameDay(current.dueDate, task.dueDate)) {
-      final sameDay = state.where(
-        (t) => DateUtilsHelper.isSameDay(t.dueDate, task.dueDate) && t.id != task.id,
-      );
-      final maxOrder = sameDay.isEmpty
-          ? -1
-          : sameDay.map((t) => t.sortOrder).reduce(math.max);
-      task.sortOrder = maxOrder + 1;
+      task.sortOrder = _nextSortOrder(task.dueDate, excludeId: task.id);
     }
 
     await task.save();
@@ -164,7 +195,7 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
       task.completed = false;
       task.lastCompletedDate = null;
       await task.save();
-      state = [...state]..[index] = task;
+      _updateTaskAt(index, task);
     } catch (e, stackTrace) {
       Error.throwWithStackTrace(
         TaskOperationException('Failed to add subtask.', cause: e),
@@ -186,14 +217,10 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
       subtask.completed = !subtask.completed;
       task.subtasks = [...task.subtasks]..[subtaskIndex] = subtask;
 
-      if (task.subtasks.isNotEmpty) {
-        final allCompleted = task.subtasks.every((s) => s.completed);
-        task.completed = allCompleted;
-        task.lastCompletedDate = allCompleted ? DateTime.now() : null;
-      }
+      _syncCompletionFromSubtasks(task);
 
       await task.save();
-      state = [...state]..[index] = task;
+      _updateTaskAt(index, task);
 
       if (task.recurringDaily && task.completed) {
         await _updateStreakOnRecurringCompletion(DateTime.now());
@@ -215,17 +242,10 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
     if (nextSubtasks.length == task.subtasks.length) return;
 
     try {
-      for (var i = 0; i < nextSubtasks.length; i++) {
-        nextSubtasks[i].sortOrder = i;
-      }
-      task.subtasks = nextSubtasks;
-      if (task.subtasks.isNotEmpty) {
-        final allCompleted = task.subtasks.every((s) => s.completed);
-        task.completed = allCompleted;
-        task.lastCompletedDate = allCompleted ? DateTime.now() : null;
-      }
+      task.subtasks = _withSequentialOrder(nextSubtasks);
+      _syncCompletionFromSubtasks(task);
       await task.save();
-      state = [...state]..[index] = task;
+      _updateTaskAt(index, task);
     } catch (e, stackTrace) {
       Error.throwWithStackTrace(
         TaskOperationException('Failed to delete subtask.', cause: e),
@@ -240,20 +260,11 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
     final task = state[index];
 
     try {
-      final next = <SubtaskModel>[];
-      for (var i = 0; i < ordered.length; i++) {
-        final subtask = ordered[i];
-        subtask.sortOrder = i;
-        next.add(subtask);
-      }
+      final next = _withSequentialOrder([...ordered]);
       task.subtasks = next;
-      if (task.subtasks.isNotEmpty) {
-        final allCompleted = task.subtasks.every((s) => s.completed);
-        task.completed = allCompleted;
-        task.lastCompletedDate = allCompleted ? DateTime.now() : null;
-      }
+      _syncCompletionFromSubtasks(task);
       await task.save();
-      state = [...state]..[index] = task;
+      _updateTaskAt(index, task);
     } catch (e, stackTrace) {
       Error.throwWithStackTrace(
         TaskOperationException('Failed to reorder subtasks.', cause: e),
@@ -269,20 +280,10 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
 
     try {
       final pending = task.subtasks.where((s) => !s.completed).toList();
-      for (var i = 0; i < pending.length; i++) {
-        pending[i].sortOrder = i;
-      }
-      task.subtasks = pending;
-      if (task.subtasks.isNotEmpty) {
-        final allCompleted = task.subtasks.every((s) => s.completed);
-        task.completed = allCompleted;
-        task.lastCompletedDate = allCompleted ? DateTime.now() : null;
-      } else {
-        task.completed = false;
-        task.lastCompletedDate = null;
-      }
+      task.subtasks = _withSequentialOrder(pending);
+      _syncCompletionFromSubtasks(task, resetWhenEmpty: true);
       await task.save();
-      state = [...state]..[index] = task;
+      _updateTaskAt(index, task);
     } catch (e, stackTrace) {
       Error.throwWithStackTrace(
         TaskOperationException('Failed to clear completed subtasks.', cause: e),

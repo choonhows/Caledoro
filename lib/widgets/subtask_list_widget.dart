@@ -115,7 +115,8 @@ class _SubtaskListWidgetState extends ConsumerState<SubtaskListWidget> {
           : rowPadding,
       child: Row(
         children: [
-          Icon(Icons.add_rounded, color: cs.primary, size: widget.compact ? 18 : 22),
+          Icon(Icons.add_rounded,
+              color: cs.primary, size: widget.compact ? 18 : 22),
           const SizedBox(width: 8),
           Expanded(
             child: TextField(
@@ -247,8 +248,8 @@ class _SubtaskListWidgetState extends ConsumerState<SubtaskListWidget> {
                                       : Colors.transparent,
                                   borderRadius: BorderRadius.circular(6),
                                   border: subtask.completed
-                                      ? null
-                                      : Border.all(color: cs.outline, width: 1.5),
+                               ? null
+                               : Border.all(color: cs.outline, width: 1.5),
                                 ),
                                 child: AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 160),
@@ -282,7 +283,8 @@ class _SubtaskListWidgetState extends ConsumerState<SubtaskListWidget> {
                                 subtask.label,
                                 style: tt.bodySmall?.copyWith(
                                   color: subtask.completed
-                                      ? cs.onSurfaceVariant.withValues(alpha: 0.6)
+                                       ? cs.onSurfaceVariant
+                                           .withValues(alpha: 0.6)
                                       : cs.onSurface,
                                   decoration: subtask.completed
                                       ? TextDecoration.lineThrough
@@ -336,8 +338,8 @@ class _SubtaskListWidgetState extends ConsumerState<SubtaskListWidget> {
                                       : Colors.transparent,
                                   borderRadius: BorderRadius.circular(6),
                                   border: subtask.completed
-                                      ? null
-                                      : Border.all(color: cs.outline, width: 1.5),
+                               ? null
+                               : Border.all(color: cs.outline, width: 1.5),
                                 ),
                                 child: AnimatedSwitcher(
                                   duration: const Duration(milliseconds: 160),
@@ -371,7 +373,8 @@ class _SubtaskListWidgetState extends ConsumerState<SubtaskListWidget> {
                                 subtask.label,
                                 style: tt.bodySmall?.copyWith(
                                   color: subtask.completed
-                                      ? cs.onSurfaceVariant.withValues(alpha: 0.6)
+                                       ? cs.onSurfaceVariant
+                                           .withValues(alpha: 0.6)
                                       : cs.onSurface,
                                   decoration: subtask.completed
                                       ? TextDecoration.lineThrough

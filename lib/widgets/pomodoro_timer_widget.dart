@@ -44,7 +44,8 @@ class PomodoroTimerWidget extends ConsumerWidget {
       PomodoroPhase.shortBreak => settings.shortBreakMinutes * 60,
       PomodoroPhase.longBreak => settings.longBreakMinutes * 60,
     };
-    final ratio = totalSeconds == 0 ? 0.0 : timerState.remainingSeconds / totalSeconds;
+    final ratio =
+        totalSeconds == 0 ? 0.0 : timerState.remainingSeconds / totalSeconds;
 
     final phaseLabel = switch (timerState.phase) {
       PomodoroPhase.work => 'Deep Work',
@@ -52,30 +53,30 @@ class PomodoroTimerWidget extends ConsumerWidget {
       PomodoroPhase.longBreak => 'Long Break',
     };
 
-    // Handle phase completion effects (move to provider if preferred)
     ref.listen(pomodoroTimerProvider, (previous, next) {
-      if (previous?.phase != next.phase && previous != null) {
-        // Phase changed, trigger notifications/sounds
-        final finishedPhase = previous.phase;
-        if (settings.notificationsEnabled) {
-          final body = switch (finishedPhase) {
-            PomodoroPhase.work => 'Work session complete. Time for a break.',
-            PomodoroPhase.shortBreak => 'Break complete. Back to deep work.',
-            PomodoroPhase.longBreak => 'Long break complete. Back to deep work.',
-          };
-          NotificationService.showPhaseNotification(
-            title: 'Pomodoro Complete',
-            body: body,
-          );
-        }
-        if (settings.soundEnabled) {
-          if (finishedPhase == PomodoroPhase.work) {
+      if (previous == null || previous.phase == next.phase) return;
+      final finishedPhase = previous.phase;
+
+      if (settings.notificationsEnabled) {
+        final body = switch (finishedPhase) {
+          PomodoroPhase.work => 'Work session complete. Time for a break.',
+          PomodoroPhase.shortBreak => 'Break complete. Back to deep work.',
+          PomodoroPhase.longBreak => 'Long break complete. Back to deep work.',
+        };
+        NotificationService.showPhaseNotification(
+          title: 'Pomodoro Complete',
+          body: body,
+        );
+      }
+
+      if (settings.soundEnabled) {
+        switch (finishedPhase) {
+          case PomodoroPhase.work:
             AudioService.playTimerComplete();
-          } else if (finishedPhase == PomodoroPhase.shortBreak) {
+          case PomodoroPhase.shortBreak:
             AudioService.playBreakStart();
-          } else {
+          case PomodoroPhase.longBreak:
             AudioService.playSessionEnd();
-          }
         }
       }
     });
@@ -158,8 +159,10 @@ class PomodoroTimerWidget extends ConsumerWidget {
           children: [
             _CozyPillButton(
               onPressed: canStartTimer
-                ? () => ref.read(pomodoroTimerProvider.notifier).toggleTimer()
-                : null,
+                  ? () => ref
+                      .read(pomodoroTimerProvider.notifier)
+                      .toggleTimer()
+                  : null,
               label: canStartTimer
                   ? timerState.isRunning
                       ? 'Pause'
@@ -178,13 +181,17 @@ class PomodoroTimerWidget extends ConsumerWidget {
                   : timerState.isRunning
                       ? cs.onSecondaryContainer
                       : CozyColors.onPrimary,
-              icon: timerState.isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              icon: timerState.isRunning
+                  ? Icons.pause_rounded
+                  : Icons.play_arrow_rounded,
             ),
             const SizedBox(width: 12),
             _CozyPillButton(
               onPressed: canStartTimer
-                ? () => ref.read(pomodoroTimerProvider.notifier).skipPhase()
-                : null,
+                  ? () => ref
+                      .read(pomodoroTimerProvider.notifier)
+                      .skipPhase()
+                  : null,
               label: 'Skip',
               backgroundColor:
                   canStartTimer ? cs.tertiaryContainer : cs.surfaceContainerLow,
