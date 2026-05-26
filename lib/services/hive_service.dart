@@ -4,11 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/task_model.dart';
 import '../models/settings_model.dart';
+import '../models/pomodoro_timer_model.dart';
 
 class HiveService {
   static const tasksBoxName = 'tasksBox';
   static const settingsBoxName = 'settingsBox';
   static const widgetBoxName = 'widgetBox';
+  static const timerBoxName = 'timerBox';
 
   static Future<void> init() async {
     try {
@@ -47,10 +49,14 @@ class HiveService {
     if (!Hive.isAdapterRegistered(5)) {
       Hive.registerAdapter(TaskSortModeAdapter());
     }
+    if (!Hive.isAdapterRegistered(6)) {
+      Hive.registerAdapter(PomodoroTimerModelAdapter());
+    }
 
     await Hive.openBox<TaskModel>(tasksBoxName);
     await Hive.openBox<SettingsModel>(settingsBoxName);
     await Hive.openBox<Map>(widgetBoxName);
+    await Hive.openBox<PomodoroTimerModel>(timerBoxName);
 
     final settingsBox = Hive.box<SettingsModel>(settingsBoxName);
     if (settingsBox.isEmpty) {
@@ -62,4 +68,6 @@ class HiveService {
   static Box<SettingsModel> settingsBox() =>
       Hive.box<SettingsModel>(settingsBoxName);
   static Box<Map> widgetBox() => Hive.box<Map>(widgetBoxName);
+  static Box<PomodoroTimerModel> timerBox() =>
+      Hive.box<PomodoroTimerModel>(timerBoxName);
 }

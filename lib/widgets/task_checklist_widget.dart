@@ -445,7 +445,7 @@ class _QuestCardState extends ConsumerState<_QuestCard> {
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
-                        '${completedCount}/${subtasks.length}',
+                        '$completedCount/${subtasks.length}',
                         style: tt.labelSmall?.copyWith(
                           color: cs.onSurfaceVariant,
                         ),
