@@ -71,7 +71,7 @@ class PomodoroTimerNotifier extends Notifier<PomodoroTimerModel> {
         state = state.copyWith(remainingSeconds: state.remainingSeconds - 1);
         _saveState();
         _updateWidgets();
-        if (state.remainingSeconds % 10 == 0) {
+        if (state.remainingSeconds % 1 == 0) {
           _updateOngoingNotification();
           _updateForegroundService();
         }

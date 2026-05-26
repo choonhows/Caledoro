@@ -49,6 +49,7 @@ CHANGELOG.md
 IMPLEMENTATION_PLAN.md
 *.plan.md
 DESIGN.md
+PRODUCT.md
 
 # Symbolication related
 app.*.symbols

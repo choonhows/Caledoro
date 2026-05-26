@@ -159,7 +159,7 @@ class NotificationService {
 
   static Future<void> cancelTimerNotification() async {
     try {
-      await _plugin.cancel(_timerNotificationId);
+      await _plugin.cancel(id: _timerNotificationId);
     } catch (e) {
       debugPrint('Timer notification cancel failed: $e');
     }
