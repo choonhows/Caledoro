@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:caledoro/models/task_model.dart';
 import 'package:caledoro/models/settings_model.dart';
+import 'package:caledoro/models/pomodoro_timer_model.dart';
 import 'package:caledoro/services/hive_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
@@ -29,10 +30,14 @@ Future<void> initTestHive() async {
   if (!Hive.isAdapterRegistered(5)) {
     Hive.registerAdapter(TaskSortModeAdapter());
   }
+  if (!Hive.isAdapterRegistered(6)) {
+    Hive.registerAdapter(PomodoroTimerModelAdapter());
+  }
 
   await Hive.openBox<TaskModel>(HiveService.tasksBoxName);
   await Hive.openBox<SettingsModel>(HiveService.settingsBoxName);
   await Hive.openBox<Map>(HiveService.widgetBoxName);
+  await Hive.openBox<PomodoroTimerModel>(HiveService.timerBoxName);
 
   final settingsBox = Hive.box<SettingsModel>(HiveService.settingsBoxName);
   await settingsBox.put('settings', SettingsModel());

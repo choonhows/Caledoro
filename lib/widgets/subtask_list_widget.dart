@@ -193,13 +193,11 @@ class _SubtaskListWidgetState extends ConsumerState<SubtaskListWidget> {
                   physics: const NeverScrollableScrollPhysics(),
                   buildDefaultDragHandles: false,
                   itemCount: visible.length,
-                  onReorder: (oldIndex, newIndex) async {
-                    var nextIndex = newIndex;
-                    if (nextIndex > oldIndex) nextIndex -= 1;
+                  onReorderItem: (oldIndex, newIndex) async {
                     final reordered = [...subtasks];
                     final moving = visible[oldIndex];
                     final visibleOrdered = [...visible]..removeAt(oldIndex);
-                    visibleOrdered.insert(nextIndex, moving);
+                    visibleOrdered.insert(newIndex, moving);
 
                     if (_showCompleted) {
                       reordered

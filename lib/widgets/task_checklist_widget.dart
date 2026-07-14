@@ -87,12 +87,10 @@ class TaskChecklistWidget extends ConsumerWidget {
         physics: const NeverScrollableScrollPhysics(),
         buildDefaultDragHandles: false,
         itemCount: dayTasks.length,
-        onReorder: (oldIndex, newIndex) async {
-          var nextIndex = newIndex;
-          if (nextIndex > oldIndex) nextIndex -= 1;
+        onReorderItem: (oldIndex, newIndex) async {
           final reordered = [...dayTasks];
           final task = reordered.removeAt(oldIndex);
-          reordered.insert(nextIndex, task);
+          reordered.insert(newIndex, task);
           await ref
               .read(taskListProvider.notifier)
               .reorderTasksForDay(today, reordered);

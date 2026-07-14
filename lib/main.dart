@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'services/hive_service.dart';
 import 'services/foreground_timer_service.dart';
-import 'screens/home_widget_screen.dart';
+import 'screens/dashboard_screen.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/pomodoro_settings_screen.dart';
 import 'providers/settings_provider.dart';
 import 'providers/task_provider.dart';
+import 'providers/selected_tab_provider.dart';
 import 'theme.dart';
 import 'services/notification_service.dart';
 import 'widgets/pomodoro_timer_widget.dart';
@@ -38,21 +39,16 @@ class CaledoroApp extends ConsumerStatefulWidget {
 }
 
 class _CaledoroAppState extends ConsumerState<CaledoroApp> {
-  int _selectedIndex = 0;
-
   static const List<Widget> _pages = <Widget>[
-    HomeWidgetScreen(),
+    DashboardScreen(),
     _FocusShrineScreen(),
     CalendarScreen(),
   ];
 
-  void _onNavSelected(int index) {
-    setState(() => _selectedIndex = index);
-  }
-
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
+    final selectedIndex = ref.watch(selectedTabProvider);
 
     return MaterialApp(
       title: 'Caledoro',
@@ -61,10 +57,11 @@ class _CaledoroAppState extends ConsumerState<CaledoroApp> {
       darkTheme: AppTheme.darkTheme,
       themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: Scaffold(
-        body: _pages.elementAt(_selectedIndex),
+        body: _pages.elementAt(selectedIndex),
         bottomNavigationBar: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: _onNavSelected,
+          selectedIndex: selectedIndex,
+          onDestinationSelected: (index) =>
+              ref.read(selectedTabProvider.notifier).setTab(index),
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.assignment_outlined),

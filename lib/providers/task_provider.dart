@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../models/task_model.dart';
 import '../services/hive_service.dart';
 import '../utils/date_utils.dart';
+import 'subtask_generation_provider.dart';
 
 class TaskOperationException implements Exception {
   final String message;
@@ -268,6 +269,114 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
     } catch (e, stackTrace) {
       Error.throwWithStackTrace(
         TaskOperationException('Failed to reorder subtasks.', cause: e),
+        stackTrace,
+      );
+    }
+  }
+
+  Future<void> acceptSubtask(String taskId, String subtaskId) async {
+    final index = state.indexWhere((task) => task.id == taskId);
+    if (index == -1) return;
+    final task = state[index];
+
+    try {
+      var subtaskIndex =
+          task.subtasks.indexWhere((subtask) => subtask.id == subtaskId);
+
+      if (subtaskIndex == -1) {
+        final genState = ref.read(subtaskGenerationProvider);
+        final suggestion =
+            genState.subtasks.where((s) => s.id == subtaskId).firstOrNull;
+        if (suggestion == null) return;
+
+        suggestion.suggested = false;
+        suggestion.acceptedAt = DateTime.now();
+        task.subtasks = [...task.subtasks, suggestion];
+        await task.save();
+        _updateTaskAt(index, task);
+        return;
+      }
+
+      final subtask = task.subtasks[subtaskIndex];
+      subtask.suggested = false;
+      subtask.acceptedAt = DateTime.now();
+      task.subtasks = [...task.subtasks]..[subtaskIndex] = subtask;
+
+      await task.save();
+      _updateTaskAt(index, task);
+    } catch (e, stackTrace) {
+      Error.throwWithStackTrace(
+        TaskOperationException('Failed to accept subtask.', cause: e),
+        stackTrace,
+      );
+    }
+  }
+
+  Future<void> rejectSubtask(String taskId, String subtaskId) async {
+    await deleteSubtask(taskId, subtaskId);
+
+    final genState = ref.read(subtaskGenerationProvider);
+    if (genState.status == SubtaskGenerationStatus.success &&
+        genState.subtasks.any((s) => s.id == subtaskId)) {
+      ref.read(subtaskGenerationProvider.notifier).state =
+          genState.copyWith(
+            subtasks: genState.subtasks
+                .where((s) => s.id != subtaskId)
+                .toList(),
+          );
+    }
+  }
+
+  Future<void> acceptAllSubtasks(String taskId) async {
+    final index = state.indexWhere((task) => task.id == taskId);
+    if (index == -1) return;
+    final task = state[index];
+    final now = DateTime.now();
+
+    try {
+      final genState = ref.read(subtaskGenerationProvider);
+      if (genState.status == SubtaskGenerationStatus.success) {
+        final existingIds = task.subtasks.map((s) => s.id).toSet();
+        final newSubtasks = genState.subtasks
+            .where((s) => !existingIds.contains(s.id))
+            .map((s) {
+          s.suggested = false;
+          s.acceptedAt = now;
+          return s;
+        }).toList();
+        task.subtasks = [...task.subtasks, ...newSubtasks];
+      } else {
+        for (final subtask in task.subtasks) {
+          if (subtask.suggested) {
+            subtask.suggested = false;
+            subtask.acceptedAt = now;
+          }
+        }
+      }
+      await task.save();
+      _updateTaskAt(index, task);
+    } catch (e, stackTrace) {
+      Error.throwWithStackTrace(
+        TaskOperationException('Failed to accept subtasks.', cause: e),
+        stackTrace,
+      );
+    }
+  }
+
+  Future<void> rejectAllSubtasks(String taskId) async {
+    final index = state.indexWhere((task) => task.id == taskId);
+    if (index == -1) return;
+    final task = state[index];
+
+    try {
+      final pending = task.subtasks.where((s) => !s.suggested).toList();
+      task.subtasks = _withSequentialOrder(pending);
+      _syncCompletionFromSubtasks(task, resetWhenEmpty: true);
+      await task.save();
+      _updateTaskAt(index, task);
+    } catch (e, stackTrace) {
+      Error.throwWithStackTrace(
+        TaskOperationException('Failed to reject subtasks.', cause: e),
         stackTrace,
       );
     }

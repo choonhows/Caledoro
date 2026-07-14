@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/task_model.dart';
 import '../providers/task_provider.dart';
 import '../theme.dart';
+import '../widgets/ai_subtask_generator_widget.dart';
 import '../widgets/subtask_list_widget.dart';
 
 class TaskDetailScreen extends ConsumerStatefulWidget {
@@ -237,6 +238,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                 ],
               ),
               const SizedBox(height: 20),
+              AiSubtaskGeneratorWidget(task: task),
+              const SizedBox(height: 16),
               SubtaskListWidget(task: task, dense: true),
               const SizedBox(height: 24),
               SizedBox(
