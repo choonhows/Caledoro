@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/settings_provider.dart';
@@ -33,27 +36,47 @@ class PomodoroSettingsScreen extends ConsumerWidget {
           isDarkMode: isDarkMode,
         );
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Settings saved'),
-        duration: Duration(milliseconds: 900),
-      ),
-    );
+    if (Platform.isIOS) {
+      showCupertinoDialog(
+        context: context,
+        builder: (_) => const CupertinoAlertDialog(
+          title: Text('Settings saved'),
+        ),
+      );
+      Future.delayed(const Duration(milliseconds: 900), () {
+        if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Settings saved'),
+          duration: Duration(milliseconds: 900),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final tt = Theme.of(context).textTheme;
+    final isIOS = Platform.isIOS;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Settings'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+      appBar: isIOS
+          ? const PreferredSize(
+              preferredSize: Size.fromHeight(44),
+              child: CupertinoNavigationBar(
+                middle: Text('Settings'),
+              ),
+            )
+          : AppBar(
+              title: const Text('Settings'),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         child: Column(
@@ -207,14 +230,16 @@ class _NotificationStatusCard extends ConsumerWidget {
         },
         loading: () => Row(
           children: [
-            SizedBox(
-              height: 16,
-              width: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: cs.primary,
-              ),
-            ),
+            Platform.isIOS
+                ? const CupertinoActivityIndicator()
+                : SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: cs.primary,
+                    ),
+                  ),
             const SizedBox(width: 10),
             Text(
               'Checking notification permission...',
@@ -312,6 +337,7 @@ class _CozyToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final tt = Theme.of(context).textTheme;
+    final isIOS = Platform.isIOS;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -324,10 +350,15 @@ class _CozyToggle extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: tt.bodyLarge?.copyWith(color: cs.onSurface)),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-          ),
+          isIOS
+              ? CupertinoSwitch(
+                  value: value,
+                  onChanged: onChanged,
+                )
+              : Switch(
+                  value: value,
+                  onChanged: onChanged,
+                ),
         ],
       ),
     );

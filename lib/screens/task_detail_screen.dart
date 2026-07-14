@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/task_model.dart';
@@ -94,19 +97,44 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       final messenger = ScaffoldMessenger.of(context);
       await ref.read(taskListProvider.notifier).updateTask(updated);
       if (!mounted) return;
-      messenger.showSnackBar(const SnackBar(content: Text('Quest updated')));
+      if (Platform.isIOS) {
+        showCupertinoDialog(
+          context: context,
+          builder: (_) => const CupertinoAlertDialog(
+            title: Text('Quest updated'),
+          ),
+        );
+        Future.delayed(const Duration(milliseconds: 900), () {
+          if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+        });
+      } else {
+        messenger.showSnackBar(const SnackBar(content: Text('Quest updated')));
+      }
     }
 
+    final isIOS = Platform.isIOS;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quest Details'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.save_outlined),
-            onPressed: saveTask,
-          ),
-        ],
-      ),
+      appBar: isIOS
+          ? PreferredSize(
+              preferredSize: const Size.fromHeight(44),
+              child: CupertinoNavigationBar(
+                middle: const Text('Quest Details'),
+                trailing: GestureDetector(
+                  onTap: saveTask,
+                  child: const Icon(CupertinoIcons.check_mark, size: 22),
+                ),
+              ),
+            )
+          : AppBar(
+              title: const Text('Quest Details'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.save_outlined),
+                  onPressed: saveTask,
+                ),
+              ],
+            ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         child: Form(

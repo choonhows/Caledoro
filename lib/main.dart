@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'services/hive_service.dart';
@@ -49,8 +52,9 @@ class _CaledoroAppState extends ConsumerState<CaledoroApp> {
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
     final selectedIndex = ref.watch(selectedTabProvider);
+    final isIOS = Platform.isIOS;
 
-    return MaterialApp(
+    final materialApp = MaterialApp(
       title: 'Caledoro',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
@@ -58,30 +62,52 @@ class _CaledoroAppState extends ConsumerState<CaledoroApp> {
       themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: Scaffold(
         body: _pages.elementAt(selectedIndex),
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: selectedIndex,
-          onDestinationSelected: (index) =>
-              ref.read(selectedTabProvider.notifier).setTab(index),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.assignment_outlined),
-              selectedIcon: Icon(Icons.assignment),
-              label: 'Quests',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.temple_buddhist_outlined),
-              selectedIcon: Icon(Icons.temple_buddhist),
-              label: 'Shrine',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.calendar_today_outlined),
-              selectedIcon: Icon(Icons.calendar_today),
-              label: 'Calendar',
-            ),
-          ],
-        ),
+        bottomNavigationBar: isIOS
+            ? CupertinoTabBar(
+                items: const [
+                  BottomNavigationBarItem(
+                    icon: Icon(CupertinoIcons.checkmark_alt),
+                    label: 'Quests',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(CupertinoIcons.gobackward),
+                    label: 'Shrine',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: Icon(CupertinoIcons.calendar),
+                    label: 'Calendar',
+                  ),
+                ],
+                currentIndex: selectedIndex,
+                onTap: (index) =>
+                    ref.read(selectedTabProvider.notifier).setTab(index),
+              )
+            : NavigationBar(
+                selectedIndex: selectedIndex,
+                onDestinationSelected: (index) =>
+                    ref.read(selectedTabProvider.notifier).setTab(index),
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.assignment_outlined),
+                    selectedIcon: Icon(Icons.assignment),
+                    label: 'Quests',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.temple_buddhist_outlined),
+                    selectedIcon: Icon(Icons.temple_buddhist),
+                    label: 'Shrine',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.calendar_today_outlined),
+                    selectedIcon: Icon(Icons.calendar_today),
+                    label: 'Calendar',
+                  ),
+                ],
+              ),
       ),
     );
+
+    return materialApp;
   }
 }
 
@@ -97,6 +123,7 @@ class _FocusShrineScreen extends ConsumerWidget {
     final tasks = ref.watch(taskListProvider);
     final selectedDate = ref.watch(selectedDateProvider);
     final settings = ref.watch(settingsProvider);
+    final isIOS = Platform.isIOS;
 
     final dayTasks = tasks
         .where((task) => DateUtilsHelper.isSameDay(task.dueDate, selectedDate))
@@ -107,19 +134,35 @@ class _FocusShrineScreen extends ConsumerWidget {
     final focusMinutes = settings.workMinutes;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Focus Shrine'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const PomodoroSettingsScreen()),
+      appBar: isIOS
+          ? PreferredSize(
+              preferredSize: const Size.fromHeight(44),
+              child: CupertinoNavigationBar(
+                middle: const Text('Focus Shrine'),
+                trailing: GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const PomodoroSettingsScreen()),
+                  ),
+                  child: const Icon(CupertinoIcons.gear, size: 22),
+                ),
+              ),
+            )
+          : AppBar(
+              title: const Text('Focus Shrine'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  tooltip: 'Settings',
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const PomodoroSettingsScreen()),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(

@@ -1,5 +1,7 @@
+import 'dart:io' show Platform;
 import 'dart:ui';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -20,6 +22,7 @@ class CalendarScreen extends ConsumerWidget {
     final tt = Theme.of(context).textTheme;
     final selectedDate = ref.watch(selectedDateProvider);
     final settings = ref.watch(settingsProvider);
+    final isIOS = Platform.isIOS;
 
     String monthName(DateTime date) => DateFormat('MMMM').format(date);
 
@@ -110,18 +113,30 @@ class CalendarScreen extends ConsumerWidget {
       ),
 
       // ── FAB — Pill-shaped add button ──
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showModalBottomSheet<void>(
-          context: context,
-          isScrollControlled: true,
-          backgroundColor: Colors.transparent,
-          builder: (context) {
-            return const _AddTaskPanel();
-          },
-        ),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('New Quest'),
-      ),
+      floatingActionButton: isIOS
+          ? FloatingActionButton(
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) {
+                  return const _AddTaskPanel();
+                },
+              ),
+              child: const Icon(CupertinoIcons.plus),
+            )
+          : FloatingActionButton.extended(
+              onPressed: () => showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (context) {
+                  return const _AddTaskPanel();
+                },
+              ),
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('New Quest'),
+            ),
     );
   }
 }
@@ -167,9 +182,22 @@ class _AddTaskPanelState extends ConsumerState<_AddTaskPanel> {
     if (label.isEmpty) return;
     if (_subtasks.length >= _maxSubtasks) return;
     if (label.length > 200) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Subtask must be 200 characters or less')),
-      );
+      if (Platform.isIOS) {
+        showCupertinoDialog(
+          context: context,
+          builder: (_) => const CupertinoAlertDialog(
+            title: Text('Subtask must be 200 characters or less'),
+          ),
+        );
+        Future.delayed(const Duration(milliseconds: 900), () {
+          if (context.mounted) Navigator.of(context, rootNavigator: true).pop();
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Subtask must be 200 characters or less')),
+        );
+      }
       return;
     }
     setState(() {
@@ -533,9 +561,25 @@ class _AddTaskPanelState extends ConsumerState<_AddTaskPanel> {
                             if (context.mounted) Navigator.pop(context);
                           } catch (e) {
                             if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(e.toString())),
-                            );
+                            if (Platform.isIOS) {
+                              showCupertinoDialog(
+                                context: context,
+                                builder: (_) => CupertinoAlertDialog(
+                                  title: Text(e.toString()),
+                                ),
+                              );
+                              Future.delayed(
+                                  const Duration(milliseconds: 900), () {
+                                if (context.mounted) {
+                                  Navigator.of(context, rootNavigator: true)
+                                      .pop();
+                                }
+                              });
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(e.toString())),
+                              );
+                            }
                           }
                         },
                         style: ElevatedButton.styleFrom(

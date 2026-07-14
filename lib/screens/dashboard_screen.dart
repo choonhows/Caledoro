@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -38,21 +41,38 @@ class DashboardScreen extends ConsumerWidget {
     final visibleTasks = dayTasks.take(3).toList();
     final remainingCount = dayTasks.length - visibleTasks.length;
 
+    final isIOS = Platform.isIOS;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Caledoro'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: 'Settings',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => const PomodoroSettingsScreen()),
+      appBar: isIOS
+          ? PreferredSize(
+              preferredSize: const Size.fromHeight(44),
+              child: CupertinoNavigationBar(
+                middle: const Text('Caledoro'),
+                trailing: GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const PomodoroSettingsScreen()),
+                  ),
+                  child: const Icon(CupertinoIcons.gear, size: 22),
+                ),
+              ),
+            )
+          : AppBar(
+              title: const Text('Caledoro'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.settings_outlined),
+                  tooltip: 'Settings',
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const PomodoroSettingsScreen()),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Column(
