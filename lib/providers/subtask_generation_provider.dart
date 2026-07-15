@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/task_model.dart';
 import '../services/connectivity_service.dart';
@@ -61,6 +62,13 @@ class SubtaskGenerationNotifier extends Notifier<SubtaskGenerationState> {
         taskTitle: taskTitle,
         taskDescription: taskDescription,
       );
+
+      // Assign unique IDs to AI-generated subtasks (service returns id: '')
+      for (final subtask in subtasks) {
+        if (subtask.id.isEmpty) {
+          subtask.id = const Uuid().v4();
+        }
+      }
 
       state = state.copyWith(
         status: SubtaskGenerationStatus.success,

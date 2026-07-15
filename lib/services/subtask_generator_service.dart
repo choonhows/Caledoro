@@ -76,6 +76,8 @@ class GeminiSubtaskGeneratorService implements SubtaskGeneratorService {
       }
 
       final json = jsonDecode(response.body) as Map<String, dynamic>;
+      // ignore: avoid_print
+      print('[GEMINI RAW RESPONSE] ${response.body}');
       return _parseResponse(json);
     } on GeneratorException {
       rethrow;
