@@ -22,9 +22,9 @@ class CaledoroWidgetProvider : AppWidgetProvider() {
             val prefs: SharedPreferences =
                 context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-            val secondsRemaining = prefs.getString("secondsRemaining", "0")?.toIntOrNull() ?: 0
-            val isWorking = prefs.getString("isWorking", "true")?.toBooleanStrictOrNull() ?: true
-            val completedTasks = prefs.getString("completedTasks", "0")?.toIntOrNull() ?: 0
+            val secondsRemaining = prefs.getInt("secondsRemaining", 0)
+            val isWorking = prefs.getBoolean("isWorking", true)
+            val completedTasks = prefs.getInt("completedTasks", 0)
 
             val minutes = secondsRemaining / 60
             val seconds = secondsRemaining % 60
