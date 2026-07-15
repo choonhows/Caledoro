@@ -37,7 +37,7 @@ class GeminiSubtaskGeneratorService implements SubtaskGeneratorService {
   }) : _client = client ?? http.Client();
 
   static const _baseUrl =
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent';
 
   @override
   Future<List<SubtaskModel>> generateSubtasks({
