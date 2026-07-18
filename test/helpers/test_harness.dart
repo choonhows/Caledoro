@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:caledoro/models/task_model.dart';
 import 'package:caledoro/models/settings_model.dart';
 import 'package:caledoro/models/pomodoro_timer_model.dart';
+import 'package:caledoro/models/pomodoro_phase.dart';
 import 'package:caledoro/services/hive_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
@@ -32,6 +33,9 @@ Future<void> initTestHive() async {
   }
   if (!Hive.isAdapterRegistered(6)) {
     Hive.registerAdapter(PomodoroTimerModelAdapter());
+  }
+  if (!Hive.isAdapterRegistered(7)) {
+    Hive.registerAdapter(PomodoroPhaseAdapter());
   }
 
   await Hive.openBox<TaskModel>(HiveService.tasksBoxName);

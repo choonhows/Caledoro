@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/task_model.dart';
 import '../models/settings_model.dart';
 import '../models/pomodoro_timer_model.dart';
+import '../models/pomodoro_phase.dart';
 
 class HiveService {
   static const tasksBoxName = 'tasksBox';
@@ -51,6 +52,9 @@ class HiveService {
     }
     if (!Hive.isAdapterRegistered(6)) {
       Hive.registerAdapter(PomodoroTimerModelAdapter());
+    }
+    if (!Hive.isAdapterRegistered(7)) {
+      Hive.registerAdapter(PomodoroPhaseAdapter());
     }
 
     await Hive.openBox<TaskModel>(tasksBoxName);

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import '../models/pomodoro_phase.dart';
@@ -146,7 +147,9 @@ class PomodoroTimerNotifier extends Notifier<PomodoroTimerModel> {
   }
 
   void _saveState() {
-    _box.put('timer', state);
+    _box.put('timer', state).catchError((e, st) {
+      debugPrint('Hive timer write failed: $e');
+    });
   }
 
   void _updateOngoingNotification() {
