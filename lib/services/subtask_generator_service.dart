@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,11 +31,17 @@ abstract class SubtaskGeneratorService {
 class GeminiSubtaskGeneratorService implements SubtaskGeneratorService {
   final String apiKey;
   final http.Client _client;
+  final Duration _timeout;
+
+  /// Maximum number of AI subtasks kept per generation (FUNC-006).
+  static const int maxSubtasks = 10;
 
   GeminiSubtaskGeneratorService({
     required this.apiKey,
     http.Client? client,
-  }) : _client = client ?? http.Client();
+    Duration timeout = const Duration(seconds: 30),
+  })  : _client = client ?? http.Client(),
+        _timeout = timeout;
 
   static const _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent';
@@ -66,7 +73,7 @@ class GeminiSubtaskGeneratorService implements SubtaskGeneratorService {
     try {
       final response = await _client
           .post(url, headers: {'Content-Type': 'application/json'}, body: body)
-          .timeout(const Duration(seconds: 30));
+          .timeout(_timeout);
 
       if (response.statusCode != 200) {
         throw GeneratorException(
@@ -119,7 +126,8 @@ class GeminiSubtaskGeneratorService implements SubtaskGeneratorService {
         throw GeneratorException('Response is not a JSON array');
       }
 
-      return parsed.map<SubtaskModel>((item) {
+      // FUNC-006: keep at most [maxSubtasks] subtasks per generation.
+      return parsed.take(maxSubtasks).map<SubtaskModel>((item) {
         if (item is! Map<String, dynamic>) {
           throw GeneratorException('Array item is not a JSON object');
         }
@@ -140,11 +148,6 @@ class GeminiSubtaskGeneratorService implements SubtaskGeneratorService {
       throw GeneratorException('Failed to parse subtask response', cause: e);
     }
   }
-}
-
-class TimeoutException implements Exception {
-  final String message;
-  const TimeoutException(this.message);
 }
 
 final subtaskGeneratorProvider = Provider<SubtaskGeneratorService>((ref) {
