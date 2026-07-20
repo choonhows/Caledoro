@@ -234,7 +234,11 @@ class _AddTaskPanelState extends ConsumerState<_AddTaskPanel> {
             left: 24,
             right: 24,
             top: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            // viewInsets = keyboard; viewPadding.bottom = system nav bar, so the
+            // Save Quest button clears the phone's nav bar.
+            bottom: MediaQuery.of(context).viewInsets.bottom +
+                MediaQuery.of(context).viewPadding.bottom +
+                24,
           ),
           child: Form(
             key: _formKey,

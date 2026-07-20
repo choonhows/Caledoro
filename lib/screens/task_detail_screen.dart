@@ -136,7 +136,10 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
               ],
             ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        // Add the system navigation-bar inset so the Save Quest button at the
+        // bottom is not covered by the phone's nav bar.
+        padding: EdgeInsets.fromLTRB(
+            20, 16, 20, 16 + MediaQuery.of(context).viewPadding.bottom),
         child: Form(
           key: _formKey,
           child: Column(
