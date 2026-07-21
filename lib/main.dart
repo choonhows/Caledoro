@@ -62,9 +62,6 @@ class _CaledoroAppState extends ConsumerState<CaledoroApp> {
       themeMode: settings.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       // Switch themes instantly instead of animating. The dark/light label
       // styles (google_fonts SpaceGrotesk) have mismatched `inherit` flags, and
-      // Flutter cannot interpolate TextStyles with different `inherit` values,
-      // so an animated theme switch crashes ("Failed to interpolate TextStyles").
-      themeAnimationDuration: Duration.zero,
       home: Scaffold(
         body: _pages.elementAt(selectedIndex),
         bottomNavigationBar: isIOS
