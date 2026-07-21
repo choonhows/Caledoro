@@ -320,12 +320,17 @@ class DashboardScreen extends ConsumerWidget {
                     color: cs.onSurfaceVariant,
                   ),
                 const Spacer(),
-                Text(
-                  timeLabel,
-                  style: tt.headlineSmall?.copyWith(
-                    color: cs.onSurface,
-                    fontWeight: FontWeight.w600,
-                    fontFeatures: const [FontFeature.tabularFigures()],
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      timeLabel,
+                      style: tt.headlineSmall?.copyWith(
+                        color: cs.onSurface,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
                   ),
                 ),
               ],

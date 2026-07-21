@@ -103,13 +103,16 @@ class PomodoroTimerWidget extends ConsumerWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        _formatTime(timerState.remainingSeconds),
-                        style: tt.displayMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: cs.onSurface,
-                          letterSpacing: 3,
-                          fontFamily: 'monospace',
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          _formatTime(timerState.remainingSeconds),
+                          style: tt.displayMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: cs.onSurface,
+                            letterSpacing: 3,
+                            fontFamily: 'monospace',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 4),
