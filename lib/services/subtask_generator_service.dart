@@ -36,6 +36,12 @@ class GeminiSubtaskGeneratorService implements SubtaskGeneratorService {
   /// Maximum number of AI subtasks kept per generation (FUNC-006).
   static const int maxSubtasks = 10;
 
+  /// Maximum number of retries for transient HTTP errors (503, 429).
+  static const int _maxRetries = 2;
+
+  /// Delays between retries (index 0 = delay after first failure, etc.).
+  static const _retryDelays = [Duration(seconds: 1), Duration(seconds: 2)];
+
   GeminiSubtaskGeneratorService({
     required this.apiKey,
     http.Client? client,
@@ -70,34 +76,48 @@ class GeminiSubtaskGeneratorService implements SubtaskGeneratorService {
       },
     });
 
-    try {
-      final response = await _client
-          .post(url, headers: {'Content-Type': 'application/json'}, body: body)
-          .timeout(_timeout);
+    for (var attempt = 0; attempt <= _maxRetries; attempt++) {
+      try {
+        final response = await _client
+            .post(url, headers: {'Content-Type': 'application/json'}, body: body)
+            .timeout(_timeout);
 
-      if (response.statusCode != 200) {
+        if (response.statusCode == 200) {
+          final json = jsonDecode(response.body) as Map<String, dynamic>;
+          // ignore: avoid_print
+          print('[GEMINI RAW RESPONSE] ${response.body}');
+          return _parseResponse(json);
+        }
+
+        if (_isTransient(response.statusCode) && attempt < _maxRetries) {
+          await Future.delayed(_retryDelays[attempt]);
+          continue;
+        }
+
         throw GeneratorException(
           'API request failed with status ${response.statusCode}',
           cause: response.body,
         );
+      } on GeneratorException {
+        rethrow;
+      } on http.ClientException catch (e) {
+        throw GeneratorException('Network error: check your connection', cause: e);
+      } on TimeoutException catch (e) {
+        throw GeneratorException('Request timed out', cause: e);
+      } on FormatException catch (e) {
+        throw GeneratorException('Invalid response format', cause: e);
+      } catch (e) {
+        throw GeneratorException('Unexpected error during generation', cause: e);
       }
-
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
-      // ignore: avoid_print
-      print('[GEMINI RAW RESPONSE] ${response.body}');
-      return _parseResponse(json);
-    } on GeneratorException {
-      rethrow;
-    } on http.ClientException catch (e) {
-      throw GeneratorException('Network error: check your connection', cause: e);
-    } on TimeoutException catch (e) {
-      throw GeneratorException('Request timed out', cause: e);
-    } on FormatException catch (e) {
-      throw GeneratorException('Invalid response format', cause: e);
-    } catch (e) {
-      throw GeneratorException('Unexpected error during generation', cause: e);
     }
+
+    throw GeneratorException('API request failed after retries');
   }
+
+  /// Returns true for HTTP status codes that are transient and worth retrying
+  /// (503 Service Unavailable, 429 Too Many Requests).
+  static bool _isTransient(int statusCode) =>
+      statusCode == 503 || statusCode == 429;
 
   List<SubtaskModel> _parseResponse(Map<String, dynamic> json) {
     try {
