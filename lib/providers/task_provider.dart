@@ -169,7 +169,7 @@ class TaskListNotifier extends Notifier<List<TaskModel>> {
       task.sortOrder = _nextSortOrder(task.dueDate, excludeId: task.id);
     }
 
-    await task.save();
+    await HiveService.tasksBox().put(task.id, task);
     state = state.map((t) => t.id == task.id ? task : t).toList();
   }
 
